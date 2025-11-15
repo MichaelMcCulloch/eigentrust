@@ -3,6 +3,7 @@
 Provides plots showing trust score evolution over iterations.
 """
 
+import warnings
 import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import List, Dict, Optional
@@ -64,7 +65,13 @@ class ConvergencePlotter:
         fig.suptitle(title, fontsize=14, fontweight='bold')
 
         # Save figure
-        plt.tight_layout()
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', message='Tight layout not applied')
+            try:
+                plt.tight_layout()
+            except (ValueError, UserWarning):
+                # Tight layout may fail with complex plots - ignore and use bbox_inches='tight' instead
+                pass
         plt.savefig(output_path, dpi=self.dpi, bbox_inches='tight')
         plt.close(fig)
 
@@ -171,17 +178,27 @@ class ConvergencePlotter:
 
         # Add annotation for convergence point if converged
         if len(deltas) > 0:
-            converged_at = None
+            converged_idx = None
             for i, delta in enumerate(deltas):
                 if delta < epsilon:
-                    converged_at = iterations[i]
+                    converged_idx = i
                     break
 
-            if converged_at is not None:
+            if converged_idx is not None:
+                converged_at = iterations[converged_idx]
+                converged_delta = deltas[converged_idx]
+
+                # Calculate text position relative to plot range
+                x_range = max(iterations) - min(iterations) if len(iterations) > 1 else 1
+                # Place text 10% to the right of convergence point (but keep within reasonable bounds)
+                text_x = converged_at + max(0.1 * x_range, 0.5)
+                # Place text above the convergence point (3x on log scale, but cap it)
+                text_y = min(converged_delta * 3, max(deltas))
+
                 ax.annotate(
                     f'Converged at iteration {converged_at}',
-                    xy=(converged_at, deltas[converged_at-1]),
-                    xytext=(converged_at + 2, deltas[converged_at-1] * 3),
+                    xy=(converged_at, converged_delta),
+                    xytext=(text_x, text_y),
                     arrowprops=dict(arrowstyle='->', color='green', lw=2),
                     fontsize=10,
                     color='green',

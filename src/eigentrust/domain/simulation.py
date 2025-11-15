@@ -196,11 +196,16 @@ class Simulation:
             for peer in self.peers:
                 peer.global_trust = scores[peer.peer_id]
 
-            # Create TrustScores result
-            from eigentrust.algorithms.convergence import check_convergence
-            final_delta = check_convergence(
-                pre_trust, global_trust_vector, epsilon
-            ).delta if iterations > 1 else 1.0
+            # Determine final delta
+            if track_history and len(history) > 0:
+                # Use the delta from the last iteration in history
+                final_delta = history[-1]['delta']
+            else:
+                # Calculate delta manually
+                from eigentrust.algorithms.convergence import check_convergence
+                final_delta = check_convergence(
+                    pre_trust, global_trust_vector, epsilon
+                ).delta if iterations > 1 else 1.0
 
             trust_scores = TrustScores(
                 scores=scores,

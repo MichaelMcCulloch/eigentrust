@@ -6,6 +6,7 @@ Implements command-line interface using Typer framework.
 import json
 import typer
 from pathlib import Path
+from typing import Optional
 from typing_extensions import Annotated
 from eigentrust.simulation.network import create_network
 from eigentrust.utils.io import save_simulation, load_simulation
@@ -606,8 +607,10 @@ def all(
 
         typer.echo(f"\n✓ Complete! All files saved to: {output_dir}")
         typer.echo("=" * 60)
-        raise typer.Exit(0)
 
+    except typer.Exit:
+        # Re-raise typer exits without modification
+        raise
     except Exception as e:
         typer.echo(f"\nError: {e}", err=True)
         raise typer.Exit(1)
@@ -624,10 +627,6 @@ def version_callback(
     if version:
         typer.echo("eigentrust version 0.1.0")
         raise typer.Exit(0)
-
-
-# Import for type hints
-from typing import Optional
 
 
 if __name__ == "__main__":
