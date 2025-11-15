@@ -269,6 +269,150 @@ def info(
         raise typer.Exit(1)
 
 
+@app.command()
+def visualize_matrix(
+    input: Annotated[
+        Path,
+        typer.Option(help="Input simulation file"),
+    ],
+    output: Annotated[
+        Path,
+        typer.Option(help="Output image file path"),
+    ] = Path("trust_matrix.png"),
+    title: Annotated[
+        Optional[str],
+        typer.Option(help="Title for the visualization"),
+    ] = None,
+    colormap: Annotated[
+        str,
+        typer.Option(help="Matplotlib colormap (viridis, plasma, inferno, magma, etc.)"),
+    ] = "viridis",
+    dpi: Annotated[
+        int,
+        typer.Option(help="Resolution (DPI) for output image"),
+    ] = 300,
+    annotate: Annotated[
+        Optional[bool],
+        typer.Option(help="Force show/hide cell annotations (auto if not specified)"),
+    ] = None,
+    verbose: Annotated[
+        bool,
+        typer.Option(help="Enable verbose logging"),
+    ] = False,
+) -> None:
+    """Visualize trust matrix as heatmap."""
+    try:
+        # Load simulation
+        if verbose:
+            typer.echo(f"Loading simulation from {input}...")
+        sim = load_simulation(input)
+
+        # Check for algorithm results
+        if not any(p.global_trust is not None for p in sim.peers):
+            typer.echo(
+                "Warning: No trust scores found. Run 'run' command first.",
+                err=True
+            )
+
+        # Create visualizer
+        if verbose:
+            typer.echo(f"Generating trust matrix visualization...")
+
+        from eigentrust.visualization.matrix_viz import MatrixVisualizer
+        visualizer = MatrixVisualizer(
+            colormap=colormap,
+            dpi=dpi
+        )
+
+        # Generate visualization
+        visualizer.visualize(
+            simulation=sim,
+            output_path=output,
+            title=title,
+            show_annotations=annotate
+        )
+
+        # Output success
+        typer.echo(f"Trust matrix visualization saved to: {output}")
+        typer.echo(f"Matrix size: {len(sim.peers)}×{len(sim.peers)}")
+        raise typer.Exit(0)
+
+    except Exception as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+
+
+@app.command()
+def visualize_graph(
+    input: Annotated[
+        Path,
+        typer.Option(help="Input simulation file"),
+    ],
+    output: Annotated[
+        Path,
+        typer.Option(help="Output image file path"),
+    ] = Path("trust_graph.png"),
+    title: Annotated[
+        Optional[str],
+        typer.Option(help="Title for the visualization"),
+    ] = None,
+    layout: Annotated[
+        str,
+        typer.Option(help="Graph layout algorithm (spring, circular, kamada_kawai)"),
+    ] = "spring",
+    edge_threshold: Annotated[
+        float,
+        typer.Option(help="Minimum trust value to show edge"),
+    ] = 0.01,
+    dpi: Annotated[
+        int,
+        typer.Option(help="Resolution (DPI) for output image"),
+    ] = 300,
+    show_labels: Annotated[
+        bool,
+        typer.Option(help="Show peer names as labels"),
+    ] = True,
+    verbose: Annotated[
+        bool,
+        typer.Option(help="Enable verbose logging"),
+    ] = False,
+) -> None:
+    """Visualize trust network as directed graph."""
+    try:
+        # Load simulation
+        if verbose:
+            typer.echo(f"Loading simulation from {input}...")
+        sim = load_simulation(input)
+
+        # Create visualizer
+        if verbose:
+            typer.echo(f"Generating trust graph visualization...")
+
+        from eigentrust.visualization.graph_viz import GraphVisualizer
+        visualizer = GraphVisualizer(
+            dpi=dpi,
+            edge_threshold=edge_threshold,
+            layout_algorithm=layout
+        )
+
+        # Generate visualization
+        visualizer.visualize(
+            simulation=sim,
+            output_path=output,
+            title=title,
+            show_labels=show_labels
+        )
+
+        # Output success
+        typer.echo(f"Trust graph visualization saved to: {output}")
+        typer.echo(f"Network: {len(sim.peers)} peers")
+        raise typer.Exit(0)
+
+    except Exception as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+
+
 @app.callback()
 def version_callback(
     version: Annotated[

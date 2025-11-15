@@ -139,12 +139,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T057 [P] [US3] Create MatrixVisualizer class in src/eigentrust/visualization/matrix_viz.py
-- [ ] T058 [US3] Implement heatmap rendering with matplotlib.pyplot.imshow
-- [ ] T059 [US3] Implement cell annotation for matrices <20×20 peers
-- [ ] T060 [US3] Implement colorbar and axis labels for matrix visualization
-- [ ] T061 [US3] Add CLI visualize matrix subcommand in src/eigentrust/cli/main.py
-- [ ] T062 [US3] Add configurable colormap and DPI options to matrix visualizer
+- [X] T057 [P] [US3] Create MatrixVisualizer class in src/eigentrust/visualization/matrix_viz.py
+- [X] T058 [US3] Implement heatmap rendering with matplotlib.pyplot.imshow
+- [X] T059 [US3] Implement cell annotation for matrices <20×20 peers
+- [X] T060 [US3] Implement colorbar and axis labels for matrix visualization
+- [X] T061 [US3] Add CLI visualize matrix subcommand in src/eigentrust/cli/main.py
+- [X] T062 [US3] Add configurable colormap and DPI options to matrix visualizer
 
 **Checkpoint**: User Story 3 complete - Can visualize trust matrix independently
 
@@ -166,14 +166,14 @@
 
 ### Implementation for User Story 4
 
-- [ ] T068 [P] [US4] Create GraphVisualizer class in src/eigentrust/visualization/graph_viz.py
-- [ ] T069 [US4] Implement NetworkX DiGraph construction from Simulation
-- [ ] T070 [US4] Implement node color encoding (RGB: R=maliciousness, G=1-maliciousness)
-- [ ] T071 [US4] Implement node size encoding (proportional to 1-competence)
-- [ ] T072 [US4] Implement edge thickness encoding (proportional to trust weight)
-- [ ] T073 [US4] Implement graph layout using NetworkX spring_layout
-- [ ] T074 [US4] Add CLI visualize graph subcommand in src/eigentrust/cli/main.py
-- [ ] T075 [US4] Add configurable layout and edge threshold options
+- [X] T068 [P] [US4] Create GraphVisualizer class in src/eigentrust/visualization/graph_viz.py
+- [X] T069 [US4] Implement NetworkX DiGraph construction from Simulation
+- [X] T070 [US4] Implement node color encoding (RGB: R=maliciousness, G=1-maliciousness)
+- [X] T071 [US4] Implement node size encoding (proportional to 1-competence)
+- [X] T072 [US4] Implement edge thickness encoding (proportional to trust weight)
+- [X] T073 [US4] Implement graph layout using NetworkX spring_layout
+- [X] T074 [US4] Add CLI visualize graph subcommand in src/eigentrust/cli/main.py
+- [X] T075 [US4] Add configurable layout and edge threshold options
 
 **Checkpoint**: User Story 4 complete - Can visualize trust graph independently
 
