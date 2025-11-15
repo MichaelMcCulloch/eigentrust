@@ -161,9 +161,8 @@ class Simulation:
             # Normalize to column-stochastic
             normalized_matrix = normalize_columns(trust_matrix.matrix)
 
-            # Initialize pre-trust (uniform distribution)
-            n = len(self.peers)
-            pre_trust = torch.ones(n) / n
+            # Compute pre-trust based on interaction success rates
+            pre_trust = self._compute_pretrust(trust_matrix.peer_mapping)
 
             # Run EigenTrust algorithm with or without history tracking
             if track_history:
@@ -222,6 +221,48 @@ class Simulation:
         except Exception as e:
             self.state = SimulationState.FAILED
             raise
+
+    def _compute_pretrust(self, peer_mapping: dict) -> torch.Tensor:
+        """Compute pre-trust vector based on interaction success rates.
+
+        Peers with higher success rates as service providers receive higher
+        pre-trust scores. This provides a quality-based prior for the algorithm.
+
+        Args:
+            peer_mapping: Dictionary mapping peer IDs to matrix indices
+
+        Returns:
+            Pre-trust vector (normalized to sum to 1.0)
+        """
+        from collections import Counter
+
+        # Count total interactions and successes per peer (as target)
+        peer_stats = Counter()
+        peer_successes = Counter()
+
+        for interaction in self.interactions:
+            peer_stats[interaction.target_peer_id] += 1
+            if interaction.outcome == InteractionOutcome.SUCCESS:
+                peer_successes[interaction.target_peer_id] += 1
+
+        # Compute success rates
+        n = len(self.peers)
+        success_rates = torch.zeros(n, dtype=torch.float32)
+
+        for peer_id, idx in peer_mapping.items():
+            if peer_stats[peer_id] > 0:
+                success_rate = peer_successes[peer_id] / peer_stats[peer_id]
+                success_rates[idx] = success_rate
+            else:
+                # Peers with no interactions get neutral score
+                success_rates[idx] = 0.5
+
+        # Handle case where all peers have zero success
+        if success_rates.sum() == 0:
+            return torch.ones(n) / n
+
+        # Normalize to sum to 1.0
+        return success_rates / success_rates.sum()
 
     def _build_trust_matrix(self) -> TrustMatrix:
         """Build trust matrix from peer local trust or interactions.
@@ -308,14 +349,22 @@ class Simulation:
                 for peer_id in local_trust.keys()
             }
 
-    def simulate_interactions(self, count: int) -> list[Interaction]:
-        """Simulate random peer-to-peer interactions.
+    def simulate_interactions(
+        self,
+        count: int,
+        use_preferential_attachment: bool = True
+    ) -> list[Interaction]:
+        """Simulate peer-to-peer interactions with optional preferential attachment.
 
-        Creates random interactions between peers based on their behavioral
-        characteristics (competence and maliciousness).
+        Creates interactions between peers using Barabási-Albert inspired
+        preferential attachment, which creates scale-free network properties.
+        Peers with more successful past interactions are more likely to be
+        selected as targets.
 
         Args:
             count: Number of interactions to simulate
+            use_preferential_attachment: If True, use preferential attachment
+                based on success counts. If False, use uniform random selection.
 
         Returns:
             List of simulated interactions
@@ -333,7 +382,8 @@ class Simulation:
         new_interactions = simulate_interactions(
             peers=self.peers,
             num_interactions=count,
-            seed=self.random_seed
+            seed=self.random_seed,
+            use_preferential_attachment=use_preferential_attachment
         )
 
         # Add interactions to simulation history

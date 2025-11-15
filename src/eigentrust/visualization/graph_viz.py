@@ -169,7 +169,10 @@ class GraphVisualizer:
         return G
 
     def _compute_layout(self, G: nx.DiGraph) -> dict:
-        """Compute graph layout positions.
+        """Compute force-directed graph layout positions.
+
+        Uses Fruchterman-Reingold force-directed algorithm (spring layout)
+        with edge weights to cluster trusted peers together.
 
         Args:
             G: NetworkX graph
@@ -178,14 +181,25 @@ class GraphVisualizer:
             Dictionary mapping node IDs to (x, y) positions
         """
         if self.layout_algorithm == "spring":
-            return nx.spring_layout(G, k=1.5, iterations=50, seed=42)
+            # Force-directed layout with edge weight consideration
+            # k: optimal distance between nodes
+            # iterations: more iterations = better layout
+            # weight: edge attribute to use for spring force (higher weight = shorter distance)
+            return nx.spring_layout(
+                G,
+                k=2.0,  # Increase spacing
+                iterations=100,  # More iterations for better convergence
+                weight='weight',  # Use trust weights
+                seed=42
+            )
         elif self.layout_algorithm == "circular":
             return nx.circular_layout(G)
         elif self.layout_algorithm == "kamada_kawai":
-            return nx.kamada_kawai_layout(G)
+            # Kamada-Kawai also respects edge weights
+            return nx.kamada_kawai_layout(G, weight='weight')
         else:
-            # Default to spring layout
-            return nx.spring_layout(G, k=1.5, iterations=50, seed=42)
+            # Default to force-directed spring layout
+            return nx.spring_layout(G, k=2.0, iterations=100, weight='weight', seed=42)
 
     def _compute_node_colors(self, simulation: Simulation) -> list:
         """Compute node colors based on peer characteristics.
@@ -210,9 +224,9 @@ class GraphVisualizer:
         return colors
 
     def _compute_node_sizes(self, simulation: Simulation) -> list:
-        """Compute node sizes based on competence.
+        """Compute node sizes based on global trust scores.
 
-        Larger nodes = more competent (lower incompetence value)
+        Larger nodes = higher trust scores
 
         Args:
             simulation: Simulation with peer data
@@ -220,13 +234,22 @@ class GraphVisualizer:
         Returns:
             List of node sizes
         """
-        base_size = 500
+        base_size = 300
+        max_size = 1500
         sizes = []
+
+        # Get trust score range
+        trust_scores = [peer.global_trust or 0.0 for peer in simulation.peers]
+        min_trust = min(trust_scores) if trust_scores else 0.0
+        max_trust = max(trust_scores) if trust_scores else 1.0
+        trust_range = max_trust - min_trust if max_trust > min_trust else 1.0
+
         for peer in simulation.peers:
-            # Competence 0.0 (hypercompetent) -> large node
-            # Competence 1.0 (incompetent) -> small node
-            competence_factor = 1.0 - peer.competence
-            size = base_size * (0.5 + competence_factor)
+            trust = peer.global_trust or 0.0
+            # Normalize trust to [0, 1]
+            normalized_trust = (trust - min_trust) / trust_range if trust_range > 0 else 0.5
+            # Scale to size range
+            size = base_size + normalized_trust * (max_size - base_size)
             sizes.append(size)
         return sizes
 
@@ -263,15 +286,15 @@ class GraphVisualizer:
             Patch(facecolor=(0.0, 1.0, 0.3), label='Altruistic (low maliciousness)'),
             Patch(facecolor=(1.0, 0.0, 0.3), label='Malicious (high maliciousness)'),
             Line2D([0], [0], marker='o', color='w',
-                   markerfacecolor='gray', markersize=12,
-                   label='Large = Competent'),
+                   markerfacecolor='gray', markersize=14,
+                   label='Large = High global trust'),
             Line2D([0], [0], marker='o', color='w',
-                   markerfacecolor='gray', markersize=6,
-                   label='Small = Incompetent'),
+                   markerfacecolor='gray', markersize=7,
+                   label='Small = Low global trust'),
             Line2D([0], [0], color='gray', linewidth=3,
-                   label='Thick edge = High trust'),
+                   label='Thick edge = High local trust'),
             Line2D([0], [0], color='gray', linewidth=1,
-                   label='Thin edge = Low trust'),
+                   label='Thin edge = Low local trust'),
         ]
 
         ax.legend(

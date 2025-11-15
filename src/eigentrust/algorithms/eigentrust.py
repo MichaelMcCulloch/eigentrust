@@ -15,22 +15,31 @@ def compute_eigentrust(
     pre_trust: torch.Tensor,
     max_iterations: int = 100,
     epsilon: float = 0.001,
-    norm_type: str = 'l1'
+    norm_type: str = 'l1',
+    alpha: float = 0.15
 ) -> Tuple[torch.Tensor, int, bool]:
-    """Compute global trust scores using EigenTrust power iteration.
+    """Compute global trust scores using EigenTrust power iteration with damping.
 
     Implements the EigenTrust algorithm from Kamvar et al. 2003:
-        t_{k+1} = C^T * t_k
+        t_{k+1} = (1 - α) * C^T * t_k + α * p
 
-    Where C is the column-normalized trust matrix and t is the trust vector.
-    The algorithm iterates until convergence or max_iterations is reached.
+    Where:
+        - C is the column-normalized trust matrix
+        - t is the trust vector
+        - p is the pre-trust vector (prior distribution)
+        - α is the damping factor (teleportation probability)
+
+    The damping factor prevents convergence to uniform distribution and
+    ensures that pre-trust influences the final scores.
 
     Args:
         trust_matrix: Column-stochastic trust matrix (N×N)
-        pre_trust: Initial trust vector (N,)
+        pre_trust: Pre-trust/prior distribution vector (N,)
         max_iterations: Maximum number of iterations
         epsilon: Convergence threshold
         norm_type: Type of norm for convergence check ('l1' or 'l2')
+        alpha: Damping factor in [0, 1]. Higher values give more weight to pre-trust.
+            Typical value is 0.15 (same as PageRank). Set to 0.0 to disable damping.
 
     Returns:
         Tuple of (global_trust, iterations, converged):
@@ -64,10 +73,12 @@ def compute_eigentrust(
     # Initialize trust vector
     t = pre_trust.clone()
 
-    # Power iteration
+    # Power iteration with damping
     for iteration in range(max_iterations):
-        # Compute next trust vector: t_new = C^T * t
-        t_new = torch.matmul(trust_matrix.T, t)
+        # Compute next trust vector with damping:
+        # t_new = (1 - alpha) * C^T * t + alpha * p
+        trust_propagation = torch.matmul(trust_matrix.T, t)
+        t_new = (1.0 - alpha) * trust_propagation + alpha * pre_trust
 
         # Normalize to ensure sum = 1.0 (handle numerical drift)
         t_new = t_new / t_new.sum()
@@ -91,17 +102,19 @@ def compute_eigentrust_with_history(
     peer_ids: List[str],
     max_iterations: int = 100,
     epsilon: float = 0.001,
-    norm_type: str = 'l1'
+    norm_type: str = 'l1',
+    alpha: float = 0.15
 ) -> Tuple[torch.Tensor, int, bool, List[Dict]]:
     """Compute EigenTrust with iteration-by-iteration history tracking.
 
     Args:
         trust_matrix: Column-stochastic trust matrix (N×N)
-        pre_trust: Initial trust vector (N,)
+        pre_trust: Pre-trust/prior distribution vector (N,)
         peer_ids: List of peer IDs corresponding to matrix indices
         max_iterations: Maximum number of iterations
         epsilon: Convergence threshold
         norm_type: Type of norm for convergence check
+        alpha: Damping factor for pre-trust (default: 0.15)
 
     Returns:
         Tuple of (global_trust, iterations, converged, history):
@@ -138,10 +151,12 @@ def compute_eigentrust_with_history(
         'timestamp': datetime.utcnow().isoformat()
     })
 
-    # Power iteration
+    # Power iteration with damping
     for iteration in range(max_iterations):
-        # Compute next trust vector: t_new = C^T * t
-        t_new = torch.matmul(trust_matrix.T, t)
+        # Compute next trust vector with damping:
+        # t_new = (1 - alpha) * C^T * t + alpha * p
+        trust_propagation = torch.matmul(trust_matrix.T, t)
+        t_new = (1.0 - alpha) * trust_propagation + alpha * pre_trust
 
         # Normalize to ensure sum = 1.0
         t_new = t_new / t_new.sum()
