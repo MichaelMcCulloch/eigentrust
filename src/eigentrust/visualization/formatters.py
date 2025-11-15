@@ -188,12 +188,15 @@ class ConvergencePlotter:
                 converged_at = iterations[converged_idx]
                 converged_delta = deltas[converged_idx]
 
-                # Calculate text position relative to plot range
-                x_range = max(iterations) - min(iterations) if len(iterations) > 1 else 1
-                # Place text 10% to the right of convergence point (but keep within reasonable bounds)
-                text_x = converged_at + max(0.1 * x_range, 0.5)
-                # Place text above the convergence point (3x on log scale, but cap it)
-                text_y = min(converged_delta * 3, max(deltas))
+                # Position annotation in data coordinates
+                # For log scale y-axis, we need to position in log space
+                y_min, y_max = ax.get_ylim()
+                x_min, x_max = ax.get_xlim()
+
+                # Place text in the middle-right area of the plot
+                text_x = x_min + 0.6 * (x_max - x_min)
+                # In log space, geometric mean for y position
+                text_y = (y_max * y_min) ** 0.5
 
                 ax.annotate(
                     f'Converged at iteration {converged_at}',
@@ -202,5 +205,6 @@ class ConvergencePlotter:
                     arrowprops=dict(arrowstyle='->', color='green', lw=2),
                     fontsize=10,
                     color='green',
-                    fontweight='bold'
+                    fontweight='bold',
+                    bbox=dict(boxstyle='round,pad=0.5', facecolor='white', edgecolor='green', alpha=0.8)
                 )

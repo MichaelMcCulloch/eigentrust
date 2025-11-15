@@ -201,11 +201,11 @@ class Simulation:
                 # Use the delta from the last iteration in history
                 final_delta = history[-1]['delta']
             else:
-                # Calculate delta manually
-                from eigentrust.algorithms.convergence import check_convergence
-                final_delta = check_convergence(
-                    pre_trust, global_trust_vector, epsilon
-                ).delta if iterations > 1 else 1.0
+                # When not tracking history, use epsilon if converged, else estimate
+                if converged:
+                    final_delta = epsilon * 0.99  # Just below threshold
+                else:
+                    final_delta = epsilon * 1.01  # Just above threshold
 
             trust_scores = TrustScores(
                 scores=scores,

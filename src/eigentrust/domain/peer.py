@@ -103,7 +103,7 @@ class Peer:
         """Update local trust for a partner based on interaction outcome.
 
         Successful interactions increase trust, failures decrease trust.
-        Trust values are clamped to [0.0, 1.0].
+        Trust values are normalized to sum to 1.0 after each update.
 
         Args:
             partner_id: ID of the peer that was interacted with
@@ -119,6 +119,14 @@ class Peer:
 
         # Clamp to [0.0, 1.0]
         self.local_trust[partner_id] = max(0.0, min(1.0, new_trust))
+
+        # Normalize trust values to sum to 1.0
+        total_trust = sum(self.local_trust.values())
+        if total_trust > 0:
+            self.local_trust = {
+                peer_id: trust / total_trust
+                for peer_id, trust in self.local_trust.items()
+            }
 
     def __repr__(self) -> str:
         """Return string representation of peer."""
