@@ -3,10 +3,10 @@
 Provides heatmap rendering of trust matrices with annotations.
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
-from typing import Optional, List
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from eigentrust.domain.simulation import Simulation
 from eigentrust.domain.trust_matrix import TrustMatrix
@@ -23,12 +23,7 @@ class MatrixVisualizer:
         annotate_threshold: Maximum matrix size for cell annotations
     """
 
-    def __init__(
-        self,
-        colormap: str = "viridis",
-        dpi: int = 300,
-        annotate_threshold: int = 20
-    ):
+    def __init__(self, colormap: str = "viridis", dpi: int = 300, annotate_threshold: int = 20):
         """Initialize matrix visualizer.
 
         Args:
@@ -44,8 +39,8 @@ class MatrixVisualizer:
         self,
         simulation: Simulation,
         output_path: Path,
-        title: Optional[str] = None,
-        show_annotations: Optional[bool] = None
+        title: str | None = None,
+        show_annotations: bool | None = None,
     ) -> None:
         """Generate and save trust matrix heatmap.
 
@@ -65,8 +60,7 @@ class MatrixVisualizer:
         # Get peer display names for axis labels
         peer_ids = list(trust_matrix.peer_mapping.keys())
         peer_labels = [
-            next(p.display_name for p in simulation.peers if p.peer_id == pid)
-            for pid in peer_ids
+            next(p.display_name for p in simulation.peers if p.peer_id == pid) for pid in peer_ids
         ]
 
         # Determine if we should annotate
@@ -81,28 +75,28 @@ class MatrixVisualizer:
         im = ax.imshow(
             matrix_np,
             cmap=self.colormap,
-            aspect='auto',
+            aspect="auto",
             vmin=0.0,
             vmax=1.0,
-            interpolation='nearest'
+            interpolation="nearest",
         )
 
         # Add colorbar
-        cbar = plt.colorbar(im, ax=ax, label='Local Trust Value')
+        plt.colorbar(im, ax=ax, label="Local Trust Value")
 
         # Set axis labels
         ax.set_xticks(range(n))
         ax.set_yticks(range(n))
-        ax.set_xticklabels(peer_labels, rotation=45, ha='right')
+        ax.set_xticklabels(peer_labels, rotation=45, ha="right")
         ax.set_yticklabels(peer_labels)
 
         # Add axis titles
-        ax.set_xlabel('Trustee (peer being evaluated)')
-        ax.set_ylabel('Truster (peer assigning trust)')
+        ax.set_xlabel("Trustee (peer being evaluated)")
+        ax.set_ylabel("Truster (peer assigning trust)")
 
         # Add title
         if title is None:
-            title = f'Trust Matrix ({n}×{n} peers)'
+            title = f"Trust Matrix ({n}×{n} peers)"
         ax.set_title(title)
 
         # Add cell annotations if matrix is small enough
@@ -112,11 +106,11 @@ class MatrixVisualizer:
         # Add grid
         ax.set_xticks(np.arange(n) - 0.5, minor=True)
         ax.set_yticks(np.arange(n) - 0.5, minor=True)
-        ax.grid(which='minor', color='white', linestyle='-', linewidth=0.5)
+        ax.grid(which="minor", color="white", linestyle="-", linewidth=0.5)
 
         # Save figure
         plt.tight_layout()
-        plt.savefig(output_path, dpi=self.dpi, bbox_inches='tight')
+        plt.savefig(output_path, dpi=self.dpi, bbox_inches="tight")
         plt.close(fig)
 
     def _add_annotations(self, ax, matrix: np.ndarray, n: int) -> None:
@@ -133,23 +127,20 @@ class MatrixVisualizer:
 
                 # Choose text color based on background darkness
                 # Use white text on dark backgrounds
-                text_color = 'white' if value > 0.5 else 'black'
+                text_color = "white" if value > 0.5 else "black"
 
                 # Format value with 2 decimal places
-                text = ax.text(
-                    j, i, f'{value:.2f}',
-                    ha='center', va='center',
-                    color=text_color,
-                    fontsize=8
+                ax.text(
+                    j, i, f"{value:.2f}", ha="center", va="center", color=text_color, fontsize=8
                 )
 
     def visualize_from_matrix(
         self,
         trust_matrix: TrustMatrix,
-        peer_labels: List[str],
+        peer_labels: list[str],
         output_path: Path,
-        title: Optional[str] = None,
-        show_annotations: Optional[bool] = None
+        title: str | None = None,
+        show_annotations: bool | None = None,
     ) -> None:
         """Visualize trust matrix directly without simulation.
 
@@ -174,28 +165,28 @@ class MatrixVisualizer:
         im = ax.imshow(
             matrix_np,
             cmap=self.colormap,
-            aspect='auto',
+            aspect="auto",
             vmin=0.0,
             vmax=1.0,
-            interpolation='nearest'
+            interpolation="nearest",
         )
 
         # Add colorbar
-        cbar = plt.colorbar(im, ax=ax, label='Local Trust Value')
+        plt.colorbar(im, ax=ax, label="Local Trust Value")
 
         # Set axis labels
         ax.set_xticks(range(n))
         ax.set_yticks(range(n))
-        ax.set_xticklabels(peer_labels, rotation=45, ha='right')
+        ax.set_xticklabels(peer_labels, rotation=45, ha="right")
         ax.set_yticklabels(peer_labels)
 
         # Add axis titles
-        ax.set_xlabel('Trustee (peer being evaluated)')
-        ax.set_ylabel('Truster (peer assigning trust)')
+        ax.set_xlabel("Trustee (peer being evaluated)")
+        ax.set_ylabel("Truster (peer assigning trust)")
 
         # Add title
         if title is None:
-            title = f'Trust Matrix ({n}×{n} peers)'
+            title = f"Trust Matrix ({n}×{n} peers)"
         ax.set_title(title)
 
         # Add cell annotations if matrix is small enough
@@ -205,9 +196,9 @@ class MatrixVisualizer:
         # Add grid
         ax.set_xticks(np.arange(n) - 0.5, minor=True)
         ax.set_yticks(np.arange(n) - 0.5, minor=True)
-        ax.grid(which='minor', color='white', linestyle='-', linewidth=0.5)
+        ax.grid(which="minor", color="white", linestyle="-", linewidth=0.5)
 
         # Save figure
         plt.tight_layout()
-        plt.savefig(output_path, dpi=self.dpi, bbox_inches='tight')
+        plt.savefig(output_path, dpi=self.dpi, bbox_inches="tight")
         plt.close(fig)

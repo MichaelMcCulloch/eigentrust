@@ -3,9 +3,9 @@
 Encapsulates the N×N trust matrix and provides matrix operations.
 """
 
-import torch
+
 import numpy as np
-from typing import Dict, Tuple
+import torch
 
 
 class TrustMatrix:
@@ -20,10 +20,7 @@ class TrustMatrix:
     """
 
     def __init__(
-        self,
-        matrix: torch.Tensor,
-        peer_mapping: Dict[str, int],
-        normalized: bool = False
+        self, matrix: torch.Tensor, peer_mapping: dict[str, int], normalized: bool = False
     ):
         """Initialize trust matrix.
 
@@ -57,7 +54,7 @@ class TrustMatrix:
         return self._matrix
 
     @property
-    def peer_mapping(self) -> Dict[str, int]:
+    def peer_mapping(self) -> dict[str, int]:
         """Get peer ID to matrix index mapping."""
         return self._peer_mapping.copy()
 
@@ -138,9 +135,7 @@ class TrustMatrix:
             raise ValueError("Matrix normalization failed: columns do not sum to 1.0")
 
         return TrustMatrix(
-            matrix=normalized_matrix,
-            peer_mapping=self._peer_mapping,
-            normalized=True
+            matrix=normalized_matrix, peer_mapping=self._peer_mapping, normalized=True
         )
 
     def __repr__(self) -> str:

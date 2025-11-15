@@ -5,7 +5,6 @@ characteristics following the research.md specifications.
 """
 
 import random
-from typing import Tuple, Optional
 
 
 def compute_interaction_success_probability(
@@ -40,7 +39,7 @@ def compute_interaction_success_probability(
     return final_prob
 
 
-def generate_random_characteristics(seed: Optional[int] = None) -> Tuple[float, float]:
+def generate_random_characteristics(seed: int | None = None) -> tuple[float, float]:
     """Generate random peer characteristics.
 
     Args:
@@ -61,7 +60,7 @@ def generate_random_characteristics(seed: Optional[int] = None) -> Tuple[float, 
 def generate_adversarial_characteristics(
     peer_index: int,
     total_peers: int,
-) -> Tuple[float, float]:
+) -> tuple[float, float]:
     """Generate characteristics for adversarial network preset.
 
     Creates a mix of:

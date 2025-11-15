@@ -56,14 +56,8 @@ def test_should_create_network_with_adversarial_mix() -> None:
     assert len(sim.peers) == 30
 
     # Should have mix of good (low comp, low mal), bad (high comp, high mal)
-    good_peers = [
-        p for p in sim.peers
-        if p.competence <= 0.2 and p.maliciousness <= 0.2
-    ]
-    bad_peers = [
-        p for p in sim.peers
-        if p.competence >= 0.8 and p.maliciousness >= 0.8
-    ]
+    good_peers = [p for p in sim.peers if p.competence <= 0.2 and p.maliciousness <= 0.2]
+    bad_peers = [p for p in sim.peers if p.competence >= 0.8 and p.maliciousness >= 0.8]
 
     # Should have at least some good and some bad peers
     assert len(good_peers) > 0
@@ -87,8 +81,8 @@ def test_should_use_random_seed_for_reproducibility() -> None:
 
 def test_should_validate_minimum_peer_count() -> None:
     """Test that network creation requires at least 2 peers."""
-    from eigentrust.simulation.network import create_network
     from eigentrust.domain import InsufficientPeersError
+    from eigentrust.simulation.network import create_network
 
     # Should raise error for 0 peers
     with pytest.raises(InsufficientPeersError):
@@ -105,8 +99,8 @@ def test_should_validate_minimum_peer_count() -> None:
 
 def test_should_validate_maximum_peer_count() -> None:
     """Test that network creation enforces maximum peer count (500)."""
-    from eigentrust.simulation.network import create_network
     from eigentrust.domain import InvalidPeerCharacteristics
+    from eigentrust.simulation.network import create_network
 
     # Should raise error for >500 peers
     with pytest.raises((InvalidPeerCharacteristics, ValueError)) as exc_info:

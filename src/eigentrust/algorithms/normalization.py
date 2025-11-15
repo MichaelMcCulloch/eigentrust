@@ -37,11 +37,7 @@ def normalize_columns(matrix: torch.Tensor) -> torch.Tensor:
     # Handle zero columns (peers with no incoming trust)
     # Replace zeros with 1.0 to avoid division by zero
     # Zero columns will remain zero after normalization
-    column_sums = torch.where(
-        column_sums == 0,
-        torch.ones_like(column_sums),
-        column_sums
-    )
+    column_sums = torch.where(column_sums == 0, torch.ones_like(column_sums), column_sums)
 
     # Normalize: divide each column by its sum
     normalized = matrix / column_sums.unsqueeze(0)

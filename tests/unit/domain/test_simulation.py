@@ -3,16 +3,17 @@
 Tests simulation creation and peer management following TDD principles.
 """
 
-import pytest
 import uuid
 from datetime import datetime
+
+import pytest
+
 from eigentrust.domain import InsufficientPeersError
 
 
 def test_should_create_simulation_with_valid_peers() -> None:
     """Test that Simulation can be created with valid peer count."""
     from eigentrust.domain.simulation import Simulation, SimulationState
-    from eigentrust.domain.peer import Peer
 
     sim = Simulation()
     assert sim.simulation_id is not None
@@ -26,7 +27,6 @@ def test_should_create_simulation_with_valid_peers() -> None:
 def test_should_add_peer_to_simulation() -> None:
     """Test that peers can be added to simulation."""
     from eigentrust.domain.simulation import Simulation
-    from eigentrust.domain.peer import Peer
 
     sim = Simulation()
     peer1 = sim.add_peer(competence=0.0, maliciousness=0.0)
@@ -93,9 +93,8 @@ def test_should_have_correct_initial_state() -> None:
 def test_should_enforce_maximum_peer_count() -> None:
     """Test that simulation enforces maximum peer count (500)."""
     from eigentrust.domain.simulation import Simulation
-    from eigentrust.domain import InvalidPeerCharacteristics
 
-    sim = Simulation()
+    _sim = Simulation()
 
     # Adding 501 peers should raise error or be prevented
     # Note: This is a soft limit, implementation may choose to enforce or warn

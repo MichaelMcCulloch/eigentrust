@@ -3,9 +3,9 @@
 Computes global trust scores using power iteration method.
 """
 
-import torch
-from typing import Tuple, List, Optional, Dict
 from datetime import datetime
+
+import torch
 
 from eigentrust.algorithms.convergence import check_convergence
 
@@ -15,9 +15,9 @@ def compute_eigentrust(
     pre_trust: torch.Tensor,
     max_iterations: int = 100,
     epsilon: float = 0.001,
-    norm_type: str = 'l1',
-    alpha: float = 0.15
-) -> Tuple[torch.Tensor, int, bool]:
+    norm_type: str = "l1",
+    alpha: float = 0.15,
+) -> tuple[torch.Tensor, int, bool]:
     """Compute global trust scores using EigenTrust power iteration with damping.
 
     Implements the EigenTrust algorithm from Kamvar et al. 2003:
@@ -64,7 +64,9 @@ def compute_eigentrust(
 
     n = trust_matrix.shape[0]
     if pre_trust.shape[0] != n:
-        raise ValueError(f"Pre-trust vector size ({pre_trust.shape[0]}) must match matrix size ({n})")
+        raise ValueError(
+            f"Pre-trust vector size ({pre_trust.shape[0]}) must match matrix size ({n})"
+        )
 
     # Ensure pre-trust sums to 1.0
     if not torch.allclose(pre_trust.sum(), torch.tensor(1.0), atol=1e-6):
@@ -99,12 +101,12 @@ def compute_eigentrust(
 def compute_eigentrust_with_history(
     trust_matrix: torch.Tensor,
     pre_trust: torch.Tensor,
-    peer_ids: List[str],
+    peer_ids: list[str],
     max_iterations: int = 100,
     epsilon: float = 0.001,
-    norm_type: str = 'l1',
-    alpha: float = 0.15
-) -> Tuple[torch.Tensor, int, bool, List[Dict]]:
+    norm_type: str = "l1",
+    alpha: float = 0.15,
+) -> tuple[torch.Tensor, int, bool, list[dict]]:
     """Compute EigenTrust with iteration-by-iteration history tracking.
 
     Args:
@@ -129,7 +131,9 @@ def compute_eigentrust_with_history(
 
     n = trust_matrix.shape[0]
     if pre_trust.shape[0] != n:
-        raise ValueError(f"Pre-trust vector size ({pre_trust.shape[0]}) must match matrix size ({n})")
+        raise ValueError(
+            f"Pre-trust vector size ({pre_trust.shape[0]}) must match matrix size ({n})"
+        )
 
     if len(peer_ids) != n:
         raise ValueError(f"Number of peer IDs ({len(peer_ids)}) must match matrix size ({n})")
@@ -144,12 +148,14 @@ def compute_eigentrust_with_history(
 
     # Record initial state (iteration 0)
     trust_scores_dict = {peer_ids[i]: float(t[i].item()) for i in range(n)}
-    history.append({
-        'iteration': 0,
-        'trust_scores': trust_scores_dict,
-        'delta': 1.0,  # Initial delta is large
-        'timestamp': datetime.utcnow().isoformat()
-    })
+    history.append(
+        {
+            "iteration": 0,
+            "trust_scores": trust_scores_dict,
+            "delta": 1.0,  # Initial delta is large
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+    )
 
     # Power iteration with damping
     for iteration in range(max_iterations):
@@ -166,12 +172,14 @@ def compute_eigentrust_with_history(
 
         # Record this iteration
         trust_scores_dict = {peer_ids[i]: float(t_new[i].item()) for i in range(n)}
-        history.append({
-            'iteration': iteration + 1,
-            'trust_scores': trust_scores_dict,
-            'delta': status.delta,
-            'timestamp': datetime.utcnow().isoformat()
-        })
+        history.append(
+            {
+                "iteration": iteration + 1,
+                "trust_scores": trust_scores_dict,
+                "delta": status.delta,
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        )
 
         if status.converged:
             return t_new, iteration + 1, True, history

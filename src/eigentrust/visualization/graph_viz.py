@@ -3,10 +3,10 @@
 Provides network graph rendering with visual encoding for peer characteristics.
 """
 
-import networkx as nx
-import matplotlib.pyplot as plt
 from pathlib import Path
-from typing import Optional, Tuple
+
+import matplotlib.pyplot as plt
+import networkx as nx
 
 from eigentrust.domain.simulation import Simulation
 
@@ -26,10 +26,7 @@ class GraphVisualizer:
     """
 
     def __init__(
-        self,
-        dpi: int = 300,
-        edge_threshold: float = 0.01,
-        layout_algorithm: str = "spring"
+        self, dpi: int = 300, edge_threshold: float = 0.01, layout_algorithm: str = "spring"
     ):
         """Initialize graph visualizer.
 
@@ -46,8 +43,8 @@ class GraphVisualizer:
         self,
         simulation: Simulation,
         output_path: Path,
-        title: Optional[str] = None,
-        show_labels: bool = True
+        title: str | None = None,
+        show_labels: bool = True,
     ) -> None:
         """Generate and save trust graph visualization.
 
@@ -78,54 +75,42 @@ class GraphVisualizer:
 
         # Draw edges with varying thickness
         nx.draw_networkx_edges(
-            G, pos,
+            G,
+            pos,
             width=edge_widths,
             alpha=0.6,
-            edge_color='gray',
+            edge_color="gray",
             arrows=True,
             arrowsize=15,
-            arrowstyle='->',
-            connectionstyle='arc3,rad=0.1',
-            ax=ax
+            arrowstyle="->",
+            connectionstyle="arc3,rad=0.1",
+            ax=ax,
         )
 
         # Draw nodes with color and size encoding
         nx.draw_networkx_nodes(
-            G, pos,
-            node_color=node_colors,
-            node_size=node_sizes,
-            alpha=0.9,
-            ax=ax
+            G, pos, node_color=node_colors, node_size=node_sizes, alpha=0.9, ax=ax
         )
 
         # Draw labels if requested
         if show_labels:
-            labels = {
-                peer.peer_id: peer.display_name
-                for peer in simulation.peers
-            }
-            nx.draw_networkx_labels(
-                G, pos,
-                labels=labels,
-                font_size=8,
-                font_weight='bold',
-                ax=ax
-            )
+            labels = {peer.peer_id: peer.display_name for peer in simulation.peers}
+            nx.draw_networkx_labels(G, pos, labels=labels, font_size=8, font_weight="bold", ax=ax)
 
         # Add title
         if title is None:
-            title = f'Trust Network Graph ({len(simulation.peers)} peers)'
-        ax.set_title(title, fontsize=14, fontweight='bold')
+            title = f"Trust Network Graph ({len(simulation.peers)} peers)"
+        ax.set_title(title, fontsize=14, fontweight="bold")
 
         # Add legend
         self._add_legend(ax)
 
         # Remove axis
-        ax.axis('off')
+        ax.axis("off")
 
         # Save figure
         plt.tight_layout()
-        plt.savefig(output_path, dpi=self.dpi, bbox_inches='tight')
+        plt.savefig(output_path, dpi=self.dpi, bbox_inches="tight")
         plt.close(fig)
 
     def _build_graph(self, simulation: Simulation) -> nx.DiGraph:
@@ -146,7 +131,7 @@ class GraphVisualizer:
                 competence=peer.competence,
                 maliciousness=peer.maliciousness,
                 global_trust=peer.global_trust or 0.0,
-                display_name=peer.display_name
+                display_name=peer.display_name,
             )
 
         # Build trust matrix
@@ -160,11 +145,7 @@ class GraphVisualizer:
                 if i != j:  # Skip self-loops
                     trust_value = matrix_np[i, j]
                     if trust_value > self.edge_threshold:
-                        G.add_edge(
-                            source_id,
-                            target_id,
-                            weight=float(trust_value)
-                        )
+                        G.add_edge(source_id, target_id, weight=float(trust_value))
 
         return G
 
@@ -189,17 +170,17 @@ class GraphVisualizer:
                 G,
                 k=2.0,  # Increase spacing
                 iterations=100,  # More iterations for better convergence
-                weight='weight',  # Use trust weights
-                seed=42
+                weight="weight",  # Use trust weights
+                seed=42,
             )
         elif self.layout_algorithm == "circular":
             return nx.circular_layout(G)
         elif self.layout_algorithm == "kamada_kawai":
             # Kamada-Kawai also respects edge weights
-            return nx.kamada_kawai_layout(G, weight='weight')
+            return nx.kamada_kawai_layout(G, weight="weight")
         else:
             # Default to force-directed spring layout
-            return nx.spring_layout(G, k=2.0, iterations=100, weight='weight', seed=42)
+            return nx.spring_layout(G, k=2.0, iterations=100, weight="weight", seed=42)
 
     def _compute_node_colors(self, simulation: Simulation) -> list:
         """Compute node colors based on peer characteristics.
@@ -267,7 +248,7 @@ class GraphVisualizer:
         widths = []
 
         for u, v, data in G.edges(data=True):
-            weight = data.get('weight', 0.0)
+            weight = data.get("weight", 0.0)
             width = base_width + (max_width - base_width) * weight
             widths.append(width)
 
@@ -279,27 +260,32 @@ class GraphVisualizer:
         Args:
             ax: Matplotlib axis
         """
-        from matplotlib.patches import Patch
         from matplotlib.lines import Line2D
+        from matplotlib.patches import Patch
 
         legend_elements = [
-            Patch(facecolor=(0.0, 1.0, 0.3), label='Altruistic (low maliciousness)'),
-            Patch(facecolor=(1.0, 0.0, 0.3), label='Malicious (high maliciousness)'),
-            Line2D([0], [0], marker='o', color='w',
-                   markerfacecolor='gray', markersize=14,
-                   label='Large = High global trust'),
-            Line2D([0], [0], marker='o', color='w',
-                   markerfacecolor='gray', markersize=7,
-                   label='Small = Low global trust'),
-            Line2D([0], [0], color='gray', linewidth=3,
-                   label='Thick edge = High local trust'),
-            Line2D([0], [0], color='gray', linewidth=1,
-                   label='Thin edge = Low local trust'),
+            Patch(facecolor=(0.0, 1.0, 0.3), label="Altruistic (low maliciousness)"),
+            Patch(facecolor=(1.0, 0.0, 0.3), label="Malicious (high maliciousness)"),
+            Line2D(
+                [0],
+                [0],
+                marker="o",
+                color="w",
+                markerfacecolor="gray",
+                markersize=14,
+                label="Large = High global trust",
+            ),
+            Line2D(
+                [0],
+                [0],
+                marker="o",
+                color="w",
+                markerfacecolor="gray",
+                markersize=7,
+                label="Small = Low global trust",
+            ),
+            Line2D([0], [0], color="gray", linewidth=3, label="Thick edge = High local trust"),
+            Line2D([0], [0], color="gray", linewidth=1, label="Thin edge = Low local trust"),
         ]
 
-        ax.legend(
-            handles=legend_elements,
-            loc='upper left',
-            fontsize=9,
-            framealpha=0.9
-        )
+        ax.legend(handles=legend_elements, loc="upper left", fontsize=9, framealpha=0.9)

@@ -4,24 +4,23 @@ The Simulation is the root entity that encapsulates the entire simulation state
 and enforces invariants across all contained entities.
 """
 
-import uuid
 import random
-import torch
-from enum import Enum
+import uuid
 from datetime import datetime
-from typing import Optional, List
+from enum import Enum
 
-from eigentrust.domain import (
-    InsufficientPeersError,
-    TrustScores,
-    ConvergenceSnapshot,
-    OrphanInteractionError
-)
-from eigentrust.domain.peer import Peer
-from eigentrust.domain.interaction import Interaction, InteractionOutcome
-from eigentrust.domain.trust_matrix import TrustMatrix
+import torch
+
 from eigentrust.algorithms.eigentrust import compute_eigentrust, compute_eigentrust_with_history
 from eigentrust.algorithms.normalization import normalize_columns
+from eigentrust.domain import (
+    InsufficientPeersError,
+    OrphanInteractionError,
+    TrustScores,
+)
+from eigentrust.domain.interaction import Interaction, InteractionOutcome
+from eigentrust.domain.peer import Peer
+from eigentrust.domain.trust_matrix import TrustMatrix
 from eigentrust.simulation.interactions import simulate_interactions
 
 
@@ -52,8 +51,8 @@ class Simulation:
 
     def __init__(
         self,
-        simulation_id: Optional[str] = None,
-        random_seed: Optional[int] = None,
+        simulation_id: str | None = None,
+        random_seed: int | None = None,
     ):
         """Initialize a new simulation.
 
@@ -61,9 +60,7 @@ class Simulation:
             simulation_id: Optional ID (auto-generated if not provided)
             random_seed: Optional random seed for reproducibility
         """
-        self.simulation_id = (
-            simulation_id if simulation_id is not None else str(uuid.uuid4())
-        )
+        self.simulation_id = simulation_id if simulation_id is not None else str(uuid.uuid4())
         self.created_at = datetime.utcnow()
         self.state = SimulationState.CREATED
         self.peers: list[Peer] = []
@@ -79,7 +76,7 @@ class Simulation:
         self,
         competence: float,
         maliciousness: float,
-        peer_id: Optional[str] = None,
+        peer_id: str | None = None,
     ) -> Peer:
         """Add a new peer to the simulation.
 
@@ -116,22 +113,19 @@ class Simulation:
         if interaction.source_peer_id not in peer_ids:
             raise OrphanInteractionError(
                 f"Source peer {interaction.source_peer_id} not in simulation",
-                interaction.source_peer_id
+                interaction.source_peer_id,
             )
 
         if interaction.target_peer_id not in peer_ids:
             raise OrphanInteractionError(
                 f"Target peer {interaction.target_peer_id} not in simulation",
-                interaction.target_peer_id
+                interaction.target_peer_id,
             )
 
         self.interactions.append(interaction)
 
     def run_algorithm(
-        self,
-        max_iterations: int = 100,
-        epsilon: float = 0.001,
-        track_history: bool = False
+        self, max_iterations: int = 100, epsilon: float = 0.001, track_history: bool = False
     ) -> TrustScores:
         """Execute the EigenTrust algorithm.
 
@@ -167,12 +161,14 @@ class Simulation:
             # Run EigenTrust algorithm with or without history tracking
             if track_history:
                 peer_ids = list(trust_matrix.peer_mapping.keys())
-                global_trust_vector, iterations, converged, history = compute_eigentrust_with_history(
-                    trust_matrix=normalized_matrix,
-                    pre_trust=pre_trust,
-                    peer_ids=peer_ids,
-                    max_iterations=max_iterations,
-                    epsilon=epsilon
+                global_trust_vector, iterations, converged, history = (
+                    compute_eigentrust_with_history(
+                        trust_matrix=normalized_matrix,
+                        pre_trust=pre_trust,
+                        peer_ids=peer_ids,
+                        max_iterations=max_iterations,
+                        epsilon=epsilon,
+                    )
                 )
                 # Store convergence history
                 self.convergence_history = history
@@ -181,7 +177,7 @@ class Simulation:
                     trust_matrix=normalized_matrix,
                     pre_trust=pre_trust,
                     max_iterations=max_iterations,
-                    epsilon=epsilon
+                    epsilon=epsilon,
                 )
 
             # Convert tensor to dictionary mapping peer IDs to scores
@@ -198,7 +194,7 @@ class Simulation:
             # Determine final delta
             if track_history and len(history) > 0:
                 # Use the delta from the last iteration in history
-                final_delta = history[-1]['delta']
+                final_delta = history[-1]["delta"]
             else:
                 # When not tracking history, use epsilon if converged, else estimate
                 if converged:
@@ -212,13 +208,13 @@ class Simulation:
                 converged=converged,
                 convergence_epsilon=epsilon,
                 final_delta=final_delta,
-                history=[] if not track_history else self.convergence_history
+                history=[] if not track_history else self.convergence_history,
             )
 
             self.state = SimulationState.COMPLETED
             return trust_scores
 
-        except Exception as e:
+        except Exception:
             self.state = SimulationState.FAILED
             raise
 
@@ -304,7 +300,8 @@ class Simulation:
         """
         # Find interactions where this peer was the source (requester)
         peer_interactions = [
-            interaction for interaction in self.interactions
+            interaction
+            for interaction in self.interactions
             if interaction.source_peer_id == peer.peer_id
         ]
 
@@ -318,6 +315,7 @@ class Simulation:
 
         # Count successes and failures per target peer
         from collections import defaultdict
+
         interaction_counts = defaultdict(lambda: {"success": 0, "failure": 0})
 
         for interaction in peer_interactions:
@@ -339,20 +337,14 @@ class Simulation:
         total_trust = sum(local_trust.values())
         if total_trust > 0:
             peer.local_trust = {
-                peer_id: trust / total_trust
-                for peer_id, trust in local_trust.items()
+                peer_id: trust / total_trust for peer_id, trust in local_trust.items()
             }
         else:
             # All failures: assign minimal trust uniformly
-            peer.local_trust = {
-                peer_id: 1.0 / len(local_trust)
-                for peer_id in local_trust.keys()
-            }
+            peer.local_trust = {peer_id: 1.0 / len(local_trust) for peer_id in local_trust.keys()}
 
     def simulate_interactions(
-        self,
-        count: int,
-        use_preferential_attachment: bool = False
+        self, count: int, use_preferential_attachment: bool = False
     ) -> list[Interaction]:
         """Simulate peer-to-peer interactions with optional preferential attachment.
 
@@ -383,7 +375,7 @@ class Simulation:
             peers=self.peers,
             num_interactions=count,
             seed=self.random_seed,
-            use_preferential_attachment=use_preferential_attachment
+            use_preferential_attachment=use_preferential_attachment,
         )
 
         # Add interactions to simulation history
