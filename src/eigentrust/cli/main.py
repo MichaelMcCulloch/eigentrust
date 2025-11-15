@@ -96,6 +96,10 @@ def simulate(
         Path,
         typer.Option(help="Output file path"),
     ] = Path("simulation_with_interactions.json"),
+    preferential_attachment: Annotated[
+        bool,
+        typer.Option("--preferential-attachment/--random", help="Use Barabási-Albert preferential attachment (default: random)"),
+    ] = False,
     verbose: Annotated[
         bool,
         typer.Option(help="Enable verbose logging"),
@@ -110,9 +114,13 @@ def simulate(
 
         # Simulate interactions
         if verbose:
-            typer.echo(f"Simulating {interactions} peer-to-peer interactions...")
+            mode = "preferential attachment" if preferential_attachment else "random"
+            typer.echo(f"Simulating {interactions} peer-to-peer interactions ({mode})...")
 
-        new_interactions = sim.simulate_interactions(interactions)
+        new_interactions = sim.simulate_interactions(
+            interactions,
+            use_preferential_attachment=preferential_attachment
+        )
 
         # Save updated simulation
         save_simulation(sim, output)
@@ -514,6 +522,10 @@ def all(
         Optional[int],
         typer.Option(help="Random seed for reproducibility"),
     ] = None,
+    preferential_attachment: Annotated[
+        bool,
+        typer.Option("--preferential-attachment/--random", help="Use Barabási-Albert preferential attachment (default: random)"),
+    ] = False,
 ) -> None:
     """Run complete EigenTrust pipeline: create -> simulate -> run -> visualize."""
     try:
@@ -534,8 +546,9 @@ def all(
         typer.echo(f"  ✓ Created {len(sim.peers)} peers")
 
         # Step 2: Simulate interactions
-        typer.echo(f"\n[2/5] Simulating {interactions} interactions...")
-        sim.simulate_interactions(interactions)
+        mode = "preferential attachment" if preferential_attachment else "random selection"
+        typer.echo(f"\n[2/5] Simulating {interactions} interactions ({mode})...")
+        sim.simulate_interactions(interactions, use_preferential_attachment=preferential_attachment)
         sim_file = output_dir / "simulation.json"
         save_simulation(sim, sim_file)
 

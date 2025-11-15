@@ -56,7 +56,7 @@ def simulate_interactions(
     peers: List[Peer],
     num_interactions: int,
     seed: Optional[int] = None,
-    use_preferential_attachment: bool = True
+    use_preferential_attachment: bool = False
 ) -> List[Interaction]:
     """Simulate interactions between peers with optional preferential attachment.
 

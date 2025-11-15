@@ -352,7 +352,7 @@ class Simulation:
     def simulate_interactions(
         self,
         count: int,
-        use_preferential_attachment: bool = True
+        use_preferential_attachment: bool = False
     ) -> list[Interaction]:
         """Simulate peer-to-peer interactions with optional preferential attachment.
 
