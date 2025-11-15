@@ -6,12 +6,23 @@ and enforces invariants across all contained entities.
 
 import uuid
 import random
+import torch
 from enum import Enum
 from datetime import datetime
-from typing import Optional
-from eigentrust.domain import InsufficientPeersError
+from typing import Optional, List
+
+from eigentrust.domain import (
+    InsufficientPeersError,
+    TrustScores,
+    ConvergenceSnapshot,
+    OrphanInteractionError
+)
 from eigentrust.domain.peer import Peer
 from eigentrust.domain.interaction import Interaction, InteractionOutcome
+from eigentrust.domain.trust_matrix import TrustMatrix
+from eigentrust.algorithms.eigentrust import compute_eigentrust
+from eigentrust.algorithms.normalization import normalize_columns
+from eigentrust.simulation.interactions import simulate_interactions
 
 
 class SimulationState(Enum):
@@ -91,21 +102,46 @@ class Simulation:
         self.peers.append(peer)
         return peer
 
+    def add_interaction(self, interaction: Interaction) -> None:
+        """Add an interaction to the simulation.
+
+        Args:
+            interaction: Interaction to add
+
+        Raises:
+            OrphanInteractionError: If interaction references unknown peer
+        """
+        peer_ids = {p.peer_id for p in self.peers}
+
+        if interaction.source_peer_id not in peer_ids:
+            raise OrphanInteractionError(
+                f"Source peer {interaction.source_peer_id} not in simulation",
+                interaction.source_peer_id
+            )
+
+        if interaction.target_peer_id not in peer_ids:
+            raise OrphanInteractionError(
+                f"Target peer {interaction.target_peer_id} not in simulation",
+                interaction.target_peer_id
+            )
+
+        self.interactions.append(interaction)
+
     def run_algorithm(
         self,
         max_iterations: int = 100,
         epsilon: float = 0.001,
-    ) -> dict[str, float]:
+        track_history: bool = False
+    ) -> TrustScores:
         """Execute the EigenTrust algorithm.
-
-        This is a placeholder that will be implemented in Phase 4 (User Story 2).
 
         Args:
             max_iterations: Maximum number of iterations
             epsilon: Convergence threshold
+            track_history: Whether to track convergence history
 
         Returns:
-            Dictionary mapping peer IDs to global trust scores
+            TrustScores object with global trust scores and convergence info
 
         Raises:
             InsufficientPeersError: If fewer than 2 peers in network
@@ -116,13 +152,144 @@ class Simulation:
                 peer_count=len(self.peers),
             )
 
-        # Placeholder - will be implemented in User Story 2
-        # For now, just update state and return empty dict
         self.state = SimulationState.RUNNING
-        # Algorithm implementation will go here
-        self.state = SimulationState.COMPLETED
 
-        return {}
+        try:
+            # Build trust matrix from peer local trust or interactions
+            trust_matrix = self._build_trust_matrix()
+
+            # Normalize to column-stochastic
+            normalized_matrix = normalize_columns(trust_matrix.matrix)
+
+            # Initialize pre-trust (uniform distribution)
+            n = len(self.peers)
+            pre_trust = torch.ones(n) / n
+
+            # Run EigenTrust algorithm
+            global_trust_vector, iterations, converged = compute_eigentrust(
+                trust_matrix=normalized_matrix,
+                pre_trust=pre_trust,
+                max_iterations=max_iterations,
+                epsilon=epsilon
+            )
+
+            # Convert tensor to dictionary mapping peer IDs to scores
+            peer_ids = list(trust_matrix.peer_mapping.keys())
+            scores = {
+                peer_id: float(global_trust_vector[idx].item())
+                for peer_id, idx in trust_matrix.peer_mapping.items()
+            }
+
+            # Update peers with global trust scores
+            for peer in self.peers:
+                peer.global_trust = scores[peer.peer_id]
+
+            # Create TrustScores result
+            from eigentrust.algorithms.convergence import check_convergence
+            final_delta = check_convergence(
+                pre_trust, global_trust_vector, epsilon
+            ).delta if iterations > 1 else 1.0
+
+            trust_scores = TrustScores(
+                scores=scores,
+                iteration_count=iterations,
+                converged=converged,
+                convergence_epsilon=epsilon,
+                final_delta=final_delta,
+                history=[] if not track_history else self.convergence_history
+            )
+
+            self.state = SimulationState.COMPLETED
+            return trust_scores
+
+        except Exception as e:
+            self.state = SimulationState.FAILED
+            raise
+
+    def _build_trust_matrix(self) -> TrustMatrix:
+        """Build trust matrix from peer local trust or interactions.
+
+        Returns:
+            TrustMatrix entity
+
+        Note:
+            If peers have no local trust values, they will be initialized
+            based on interaction history (if available) or uniformly.
+        """
+        n = len(self.peers)
+        matrix = torch.zeros(n, n, dtype=torch.float32)
+        peer_mapping = {peer.peer_id: idx for idx, peer in enumerate(self.peers)}
+
+        # Build matrix from peer local trust
+        for i, peer_i in enumerate(self.peers):
+            if peer_i.local_trust:
+                # Peer has local trust values
+                for peer_j_id, trust_value in peer_i.local_trust.items():
+                    if peer_j_id in peer_mapping:
+                        j = peer_mapping[peer_j_id]
+                        matrix[i, j] = trust_value
+            else:
+                # Initialize local trust from interactions if available
+                self._update_peer_local_trust_from_interactions(peer_i)
+                for peer_j_id, trust_value in peer_i.local_trust.items():
+                    if peer_j_id in peer_mapping:
+                        j = peer_mapping[peer_j_id]
+                        matrix[i, j] = trust_value
+
+        return TrustMatrix(matrix=matrix, peer_mapping=peer_mapping)
+
+    def _update_peer_local_trust_from_interactions(self, peer: Peer) -> None:
+        """Update peer's local trust based on interaction history.
+
+        Args:
+            peer: Peer to update
+        """
+        # Find interactions where this peer was the source (requester)
+        peer_interactions = [
+            interaction for interaction in self.interactions
+            if interaction.source_peer_id == peer.peer_id
+        ]
+
+        if not peer_interactions:
+            # No interactions: initialize uniform trust
+            other_peers = [p for p in self.peers if p.peer_id != peer.peer_id]
+            if other_peers:
+                uniform_trust = 1.0 / len(other_peers)
+                peer.local_trust = {p.peer_id: uniform_trust for p in other_peers}
+            return
+
+        # Count successes and failures per target peer
+        from collections import defaultdict
+        interaction_counts = defaultdict(lambda: {"success": 0, "failure": 0})
+
+        for interaction in peer_interactions:
+            target_id = interaction.target_peer_id
+            if interaction.outcome == InteractionOutcome.SUCCESS:
+                interaction_counts[target_id]["success"] += 1
+            else:
+                interaction_counts[target_id]["failure"] += 1
+
+        # Compute local trust: success_rate
+        local_trust = {}
+        for target_id, counts in interaction_counts.items():
+            total = counts["success"] + counts["failure"]
+            if total > 0:
+                success_rate = counts["success"] / total
+                local_trust[target_id] = success_rate
+
+        # Normalize to sum to 1.0
+        total_trust = sum(local_trust.values())
+        if total_trust > 0:
+            peer.local_trust = {
+                peer_id: trust / total_trust
+                for peer_id, trust in local_trust.items()
+            }
+        else:
+            # All failures: assign minimal trust uniformly
+            peer.local_trust = {
+                peer_id: 1.0 / len(local_trust)
+                for peer_id in local_trust.keys()
+            }
 
     def simulate_interactions(self, count: int) -> list[Interaction]:
         """Simulate random peer-to-peer interactions.

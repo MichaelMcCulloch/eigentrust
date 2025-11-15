@@ -50,15 +50,19 @@ class Interaction:
             ValueError: If source and target are the same peer
         """
         if source_peer_id == target_peer_id:
-            raise ValueError("Source and target peers must be different")
+            raise ValueError("Source and target must be different")
 
-        self.interaction_id = (
-            interaction_id if interaction_id is not None else str(uuid.uuid4())
-        )
-        self.source_peer_id = source_peer_id
-        self.target_peer_id = target_peer_id
-        self.outcome = outcome
-        self.timestamp = timestamp if timestamp is not None else datetime.utcnow()
+        object.__setattr__(self, 'interaction_id',
+                          interaction_id if interaction_id is not None else str(uuid.uuid4()))
+        object.__setattr__(self, 'source_peer_id', source_peer_id)
+        object.__setattr__(self, 'target_peer_id', target_peer_id)
+        object.__setattr__(self, 'outcome', outcome)
+        object.__setattr__(self, 'timestamp',
+                          timestamp if timestamp is not None else datetime.utcnow())
+
+    def __setattr__(self, name, value):
+        """Prevent modification of attributes (immutability)."""
+        raise AttributeError(f"Cannot modify immutable Interaction object")
 
     def to_dict(self) -> dict:
         """Convert interaction to dictionary for serialization."""

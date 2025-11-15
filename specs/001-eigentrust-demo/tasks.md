@@ -93,14 +93,14 @@
 
 ### Tests for User Story 2 (TDD - Write First) ⚠️
 
-- [ ] T030 [P] [US2] Unit test for Interaction value object in tests/unit/domain/test_interaction.py
-- [ ] T031 [P] [US2] Unit test for TrustMatrix entity creation in tests/unit/domain/test_trust_matrix.py
-- [ ] T032 [P] [US2] Unit test for trust matrix column normalization in tests/unit/algorithms/test_normalization.py
-- [ ] T033 [P] [US2] Unit test for EigenTrust power iteration in tests/unit/algorithms/test_eigentrust.py
-- [ ] T034 [P] [US2] Unit test for convergence detection in tests/unit/algorithms/test_convergence.py
-- [ ] T035 [P] [US2] Unit test for interaction outcome computation in tests/unit/simulation/test_interactions.py
-- [ ] T036 [P] [US2] Integration test for full algorithm execution in tests/integration/test_full_simulation.py
-- [ ] T037 [P] [US2] Integration test for CLI run command in tests/integration/test_cli_commands.py
+- [X] T030 [P] [US2] Unit test for Interaction value object in tests/unit/domain/test_interaction.py
+- [X] T031 [P] [US2] Unit test for TrustMatrix entity creation in tests/unit/domain/test_trust_matrix.py
+- [X] T032 [P] [US2] Unit test for trust matrix column normalization in tests/unit/algorithms/test_normalization.py
+- [X] T033 [P] [US2] Unit test for EigenTrust power iteration in tests/unit/algorithms/test_eigentrust.py
+- [X] T034 [P] [US2] Unit test for convergence detection in tests/unit/algorithms/test_convergence.py
+- [X] T035 [P] [US2] Unit test for interaction outcome computation in tests/unit/simulation/test_interactions.py
+- [X] T036 [P] [US2] Integration test for full algorithm execution in tests/integration/test_full_simulation.py
+- [X] T037 [P] [US2] Integration test for CLI run command in tests/integration/test_cli_commands.py
 
 ### Implementation for User Story 2
 

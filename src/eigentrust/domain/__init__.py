@@ -4,6 +4,176 @@ This module defines the domain model following Domain-Driven Design principles,
 including custom exceptions for handling domain-specific errors.
 """
 
+from datetime import datetime
+from typing import Dict, List, Optional
+
+
+# Value Objects
+
+
+class TrustScores:
+    """Value object representing computed global trust scores.
+
+    Immutable result of EigenTrust algorithm execution.
+
+    Attributes:
+        scores: Dictionary mapping peer IDs to global trust scores
+        iteration_count: Number of iterations to converge
+        converged: Whether algorithm converged
+        convergence_epsilon: Threshold used for convergence
+        final_delta: Change in last iteration
+        history: Optional list of convergence snapshots
+    """
+
+    def __init__(
+        self,
+        scores: Dict[str, float],
+        iteration_count: int,
+        converged: bool,
+        convergence_epsilon: float,
+        final_delta: float,
+        history: Optional[List["ConvergenceSnapshot"]] = None
+    ):
+        """Initialize trust scores.
+
+        Args:
+            scores: Peer ID to trust score mapping
+            iteration_count: Number of iterations executed
+            converged: Whether convergence was achieved
+            convergence_epsilon: Convergence threshold used
+            final_delta: Final iteration delta
+            history: Optional convergence history
+
+        Raises:
+            TrustScoreError: If scores violate invariants
+        """
+        # Validate scores sum to 1.0
+        total = sum(scores.values())
+        if abs(total - 1.0) > 1e-6:
+            raise TrustScoreError(
+                f"Global trust scores must sum to 1.0, got {total}",
+                scores,
+                total
+            )
+
+        # Validate all scores are non-negative
+        if any(score < 0.0 for score in scores.values()):
+            raise TrustScoreError(
+                "All trust scores must be non-negative",
+                scores,
+                total
+            )
+
+        # Validate convergence consistency
+        if converged and final_delta >= convergence_epsilon:
+            raise ValueError(
+                f"Convergence inconsistency: marked converged but delta ({final_delta}) >= epsilon ({convergence_epsilon})"
+            )
+
+        object.__setattr__(self, 'scores', scores.copy())
+        object.__setattr__(self, 'iteration_count', iteration_count)
+        object.__setattr__(self, 'converged', converged)
+        object.__setattr__(self, 'convergence_epsilon', convergence_epsilon)
+        object.__setattr__(self, 'final_delta', final_delta)
+        object.__setattr__(self, 'history', history.copy() if history else [])
+
+    def __setattr__(self, name, value):
+        """Prevent modification of attributes (immutability)."""
+        raise AttributeError("Cannot modify immutable TrustScores object")
+
+    def get_score(self, peer_id: str) -> float:
+        """Get trust score for a specific peer.
+
+        Args:
+            peer_id: ID of peer
+
+        Returns:
+            Global trust score
+
+        Raises:
+            KeyError: If peer ID not found
+        """
+        return self.scores[peer_id]
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for serialization."""
+        return {
+            "scores": self.scores,
+            "iteration_count": self.iteration_count,
+            "converged": self.converged,
+            "convergence_epsilon": self.convergence_epsilon,
+            "final_delta": self.final_delta,
+        }
+
+    def __repr__(self) -> str:
+        """Return string representation."""
+        status = "converged" if self.converged else "not converged"
+        return f"TrustScores({len(self.scores)} peers, {self.iteration_count} iterations, {status})"
+
+
+class ConvergenceSnapshot:
+    """Value object capturing trust scores at a specific iteration.
+
+    Used for tracking trust score evolution during algorithm execution.
+
+    Attributes:
+        iteration: Iteration number
+        trust_scores: Trust scores at this iteration
+        delta: Change from previous iteration
+        timestamp: When snapshot was taken
+    """
+
+    def __init__(
+        self,
+        iteration: int,
+        trust_scores: Dict[str, float],
+        delta: float,
+        timestamp: Optional[datetime] = None
+    ):
+        """Initialize convergence snapshot.
+
+        Args:
+            iteration: Iteration number (0-indexed)
+            trust_scores: Trust scores at this iteration
+            delta: Norm of change from previous iteration
+            timestamp: Optional timestamp (auto-set if not provided)
+
+        Raises:
+            ValueError: If iteration < 0 or delta < 0
+        """
+        if iteration < 0:
+            raise ValueError(f"Iteration must be non-negative, got {iteration}")
+
+        if delta < 0:
+            raise ValueError(f"Delta must be non-negative, got {delta}")
+
+        # Validate scores sum to 1.0
+        total = sum(trust_scores.values())
+        if abs(total - 1.0) > 1e-6:
+            raise ValueError(f"Trust scores must sum to 1.0, got {total}")
+
+        object.__setattr__(self, 'iteration', iteration)
+        object.__setattr__(self, 'trust_scores', trust_scores.copy())
+        object.__setattr__(self, 'delta', delta)
+        object.__setattr__(self, 'timestamp', timestamp or datetime.utcnow())
+
+    def __setattr__(self, name, value):
+        """Prevent modification of attributes (immutability)."""
+        raise AttributeError("Cannot modify immutable ConvergenceSnapshot object")
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for serialization."""
+        return {
+            "iteration": self.iteration,
+            "trust_scores": self.trust_scores,
+            "delta": self.delta,
+            "timestamp": self.timestamp.isoformat(),
+        }
+
+    def __repr__(self) -> str:
+        """Return string representation."""
+        return f"ConvergenceSnapshot(iteration={self.iteration}, delta={self.delta:.6f})"
+
 
 # Custom Exceptions
 
