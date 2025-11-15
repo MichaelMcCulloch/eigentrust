@@ -294,7 +294,8 @@ class Simulation:
     def simulate_interactions(self, count: int) -> list[Interaction]:
         """Simulate random peer-to-peer interactions.
 
-        This is a placeholder that will be implemented in Phase 4 (User Story 2).
+        Creates random interactions between peers based on their behavioral
+        characteristics (competence and maliciousness).
 
         Args:
             count: Number of interactions to simulate
@@ -311,8 +312,23 @@ class Simulation:
                 peer_count=len(self.peers),
             )
 
-        # Placeholder - will be implemented in User Story 2
-        return []
+        # Use imported simulation function
+        new_interactions = simulate_interactions(
+            peers=self.peers,
+            num_interactions=count,
+            seed=self.random_seed
+        )
+
+        # Add interactions to simulation history
+        for interaction in new_interactions:
+            self.interactions.append(interaction)
+
+            # Update local trust for source peer based on outcome
+            source_peer = next(p for p in self.peers if p.peer_id == interaction.source_peer_id)
+            success = interaction.outcome == InteractionOutcome.SUCCESS
+            source_peer.update_local_trust(interaction.target_peer_id, success)
+
+        return new_interactions
 
     def to_dict(self) -> dict:
         """Convert simulation to dictionary for serialization."""

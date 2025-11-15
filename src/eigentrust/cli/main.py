@@ -82,6 +82,143 @@ def create(
 
 
 @app.command()
+def simulate(
+    input: Annotated[
+        Path,
+        typer.Option(help="Input simulation file"),
+    ],
+    interactions: Annotated[
+        int,
+        typer.Option(help="Number of interactions to simulate"),
+    ] = 100,
+    output: Annotated[
+        Path,
+        typer.Option(help="Output file path"),
+    ] = Path("simulation_with_interactions.json"),
+    verbose: Annotated[
+        bool,
+        typer.Option(help="Enable verbose logging"),
+    ] = False,
+) -> None:
+    """Simulate peer-to-peer interactions in the network."""
+    try:
+        # Load simulation
+        if verbose:
+            typer.echo(f"Loading simulation from {input}...")
+        sim = load_simulation(input)
+
+        # Simulate interactions
+        if verbose:
+            typer.echo(f"Simulating {interactions} peer-to-peer interactions...")
+
+        new_interactions = sim.simulate_interactions(interactions)
+
+        # Save updated simulation
+        save_simulation(sim, output)
+
+        # Output summary
+        typer.echo(f"Simulated {len(new_interactions)} interactions")
+        typer.echo(f"Total interactions: {len(sim.interactions)}")
+
+        # Count outcomes
+        from eigentrust.domain.interaction import InteractionOutcome
+        success_count = sum(
+            1 for i in new_interactions
+            if i.outcome == InteractionOutcome.SUCCESS
+        )
+        failure_count = len(new_interactions) - success_count
+        typer.echo(f"  - Successes: {success_count}")
+        typer.echo(f"  - Failures: {failure_count}")
+
+        typer.echo(f"Saved to: {output}")
+        raise typer.Exit(0)
+
+    except Exception as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+
+
+@app.command()
+def run(
+    input: Annotated[
+        Path,
+        typer.Option(help="Input simulation file"),
+    ],
+    max_iterations: Annotated[
+        int,
+        typer.Option(help="Maximum EigenTrust iterations"),
+    ] = 100,
+    epsilon: Annotated[
+        float,
+        typer.Option(help="Convergence threshold"),
+    ] = 0.001,
+    output: Annotated[
+        Path,
+        typer.Option(help="Output file path"),
+    ] = Path("simulation_results.json"),
+    verbose: Annotated[
+        bool,
+        typer.Option(help="Enable verbose logging"),
+    ] = False,
+) -> None:
+    """Run EigenTrust algorithm on simulation."""
+    try:
+        # Load simulation
+        if verbose:
+            typer.echo(f"Loading simulation from {input}...")
+        sim = load_simulation(input)
+
+        # Check for interactions
+        if len(sim.interactions) == 0:
+            typer.echo(
+                "Warning: No interactions found. Run 'simulate' command first.",
+                err=True
+            )
+
+        # Run EigenTrust algorithm
+        if verbose:
+            typer.echo(f"Running EigenTrust algorithm (max_iterations={max_iterations}, epsilon={epsilon})...")
+
+        trust_scores = sim.run_algorithm(
+            max_iterations=max_iterations,
+            epsilon=epsilon,
+            track_history=False
+        )
+
+        # Save results
+        save_simulation(sim, output)
+
+        # Output results
+        typer.echo(f"Algorithm completed in {trust_scores.iteration_count} iterations")
+        typer.echo(f"Converged: {trust_scores.converged}")
+        typer.echo(f"Final delta: {trust_scores.final_delta:.6f}")
+
+        # Show top trust scores
+        typer.echo("\nTop Trust Scores:")
+        sorted_scores = sorted(
+            trust_scores.scores.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+        for i, (peer_id, score) in enumerate(sorted_scores[:5], 1):
+            peer = next(p for p in sim.peers if p.peer_id == peer_id)
+            typer.echo(
+                f"  {i}. {peer.display_name}: {score:.4f} "
+                f"[comp={peer.competence:.2f}, mal={peer.maliciousness:.2f}]"
+            )
+
+        if len(sorted_scores) > 5:
+            typer.echo(f"  ... ({len(sorted_scores) - 5} more)")
+
+        typer.echo(f"\nSaved to: {output}")
+        raise typer.Exit(0)
+
+    except Exception as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+
+
+@app.command()
 def info(
     input: Annotated[
         Path,

@@ -104,21 +104,21 @@
 
 ### Implementation for User Story 2
 
-- [ ] T038 [P] [US2] Create Interaction value object in src/eigentrust/domain/interaction.py
-- [ ] T039 [P] [US2] Create TrustScores value object in src/eigentrust/domain/__init__.py
-- [ ] T040 [P] [US2] Create TrustMatrix entity in src/eigentrust/domain/trust_matrix.py
-- [ ] T041 [US2] Implement interaction simulation in src/eigentrust/simulation/interactions.py (uses peer behaviors)
-- [ ] T042 [US2] Implement local trust update logic in Peer entity (based on interaction outcomes)
-- [ ] T043 [US2] Implement trust matrix builder in TrustMatrix (construct from peer local trust)
-- [ ] T044 [P] [US2] Implement column normalization in src/eigentrust/algorithms/normalization.py
-- [ ] T045 [P] [US2] Implement convergence detection in src/eigentrust/algorithms/convergence.py
-- [ ] T046 [US2] Implement EigenTrust power iteration in src/eigentrust/algorithms/eigentrust.py (uses PyTorch)
-- [ ] T047 [US2] Implement ConvergenceSnapshot value object for iteration tracking
-- [ ] T048 [US2] Add simulate method to Simulation aggregate root (generates interactions)
-- [ ] T049 [US2] Add run_algorithm method to Simulation aggregate root (executes EigenTrust)
-- [ ] T050 [US2] Implement CLI simulate command in src/eigentrust/cli/main.py
-- [ ] T051 [US2] Implement CLI run command in src/eigentrust/cli/main.py
-- [ ] T052 [US2] Add CLI info command to display simulation state and trust scores
+- [X] T038 [P] [US2] Create Interaction value object in src/eigentrust/domain/interaction.py
+- [X] T039 [P] [US2] Create TrustScores value object in src/eigentrust/domain/__init__.py
+- [X] T040 [P] [US2] Create TrustMatrix entity in src/eigentrust/domain/trust_matrix.py
+- [X] T041 [US2] Implement interaction simulation in src/eigentrust/simulation/interactions.py (uses peer behaviors)
+- [X] T042 [US2] Implement local trust update logic in Peer entity (based on interaction outcomes)
+- [X] T043 [US2] Implement trust matrix builder in TrustMatrix (construct from peer local trust)
+- [X] T044 [P] [US2] Implement column normalization in src/eigentrust/algorithms/normalization.py
+- [X] T045 [P] [US2] Implement convergence detection in src/eigentrust/algorithms/convergence.py
+- [X] T046 [US2] Implement EigenTrust power iteration in src/eigentrust/algorithms/eigentrust.py (uses PyTorch)
+- [X] T047 [US2] Implement ConvergenceSnapshot value object for iteration tracking
+- [X] T048 [US2] Add simulate method to Simulation aggregate root (generates interactions)
+- [X] T049 [US2] Add run_algorithm method to Simulation aggregate root (executes EigenTrust)
+- [X] T050 [US2] Implement CLI simulate command in src/eigentrust/cli/main.py
+- [X] T051 [US2] Implement CLI run command in src/eigentrust/cli/main.py
+- [X] T052 [US2] Add CLI info command to display simulation state and trust scores
 
 **Checkpoint**: User Story 2 complete - Can execute algorithm and view trust scores independently
 
