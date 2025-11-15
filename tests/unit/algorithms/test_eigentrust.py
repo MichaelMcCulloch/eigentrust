@@ -1,6 +1,5 @@
 """Unit tests for EigenTrust power iteration (T033)."""
 
-import pytest
 import torch
 
 from eigentrust.algorithms.eigentrust import compute_eigentrust
@@ -9,19 +8,14 @@ from eigentrust.algorithms.eigentrust import compute_eigentrust
 def test_should_converge_for_simple_network():
     """Test that EigenTrust converges for a simple 3-peer network."""
     # Column-stochastic trust matrix
-    trust_matrix = torch.tensor([
-        [0.0, 0.5, 0.5],
-        [0.5, 0.0, 0.5],
-        [0.5, 0.5, 0.0]
-    ], dtype=torch.float32)
+    trust_matrix = torch.tensor(
+        [[0.0, 0.5, 0.5], [0.5, 0.0, 0.5], [0.5, 0.5, 0.0]], dtype=torch.float32
+    )
 
     pre_trust = torch.ones(3) / 3.0
 
     global_trust, iterations, converged = compute_eigentrust(
-        trust_matrix=trust_matrix,
-        pre_trust=pre_trust,
-        max_iterations=100,
-        epsilon=0.001
+        trust_matrix=trust_matrix, pre_trust=pre_trust, max_iterations=100, epsilon=0.001
     )
 
     assert converged is True
@@ -32,19 +26,14 @@ def test_should_converge_for_simple_network():
 
 def test_should_return_trust_scores_summing_to_one():
     """Test that global trust scores sum to 1.0."""
-    trust_matrix = torch.tensor([
-        [0.0, 0.7, 0.3],
-        [0.5, 0.0, 0.5],
-        [0.4, 0.6, 0.0]
-    ], dtype=torch.float32)
+    trust_matrix = torch.tensor(
+        [[0.0, 0.7, 0.3], [0.5, 0.0, 0.5], [0.4, 0.6, 0.0]], dtype=torch.float32
+    )
 
     pre_trust = torch.ones(3) / 3.0
 
     global_trust, _, _ = compute_eigentrust(
-        trust_matrix=trust_matrix,
-        pre_trust=pre_trust,
-        max_iterations=100,
-        epsilon=0.001
+        trust_matrix=trust_matrix, pre_trust=pre_trust, max_iterations=100, epsilon=0.001
     )
 
     assert torch.allclose(global_trust.sum(), torch.tensor(1.0), atol=1e-6)
@@ -53,19 +42,14 @@ def test_should_return_trust_scores_summing_to_one():
 def test_should_assign_higher_trust_to_well_connected_peers():
     """Test that peers with more incoming trust get higher scores."""
     # Peer 2 is trusted by everyone
-    trust_matrix = torch.tensor([
-        [0.0, 0.0, 1.0],
-        [0.0, 0.0, 1.0],
-        [0.5, 0.5, 0.0]
-    ], dtype=torch.float32)
+    trust_matrix = torch.tensor(
+        [[0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [0.5, 0.5, 0.0]], dtype=torch.float32
+    )
 
     pre_trust = torch.ones(3) / 3.0
 
     global_trust, _, _ = compute_eigentrust(
-        trust_matrix=trust_matrix,
-        pre_trust=pre_trust,
-        max_iterations=100,
-        epsilon=0.001
+        trust_matrix=trust_matrix, pre_trust=pre_trust, max_iterations=100, epsilon=0.001
     )
 
     # Peer 2 (index 2) should have highest trust
@@ -86,10 +70,7 @@ def test_should_handle_uniform_network():
     pre_trust = torch.ones(n) / n
 
     global_trust, iterations, converged = compute_eigentrust(
-        trust_matrix=trust_matrix,
-        pre_trust=pre_trust,
-        max_iterations=100,
-        epsilon=0.001
+        trust_matrix=trust_matrix, pre_trust=pre_trust, max_iterations=100, epsilon=0.001
     )
 
     # All peers should have equal trust (1/n)
@@ -101,20 +82,15 @@ def test_should_handle_uniform_network():
 def test_should_not_converge_if_max_iterations_reached():
     """Test that convergence fails if max iterations exceeded."""
     # Difficult matrix that converges slowly
-    trust_matrix = torch.tensor([
-        [0.0, 0.45, 0.55],
-        [0.55, 0.0, 0.45],
-        [0.45, 0.55, 0.0]
-    ], dtype=torch.float32)
+    trust_matrix = torch.tensor(
+        [[0.0, 0.45, 0.55], [0.55, 0.0, 0.45], [0.45, 0.55, 0.0]], dtype=torch.float32
+    )
 
     pre_trust = torch.ones(3) / 3.0
 
     # Set very low max_iterations
     global_trust, iterations, converged = compute_eigentrust(
-        trust_matrix=trust_matrix,
-        pre_trust=pre_trust,
-        max_iterations=2,
-        epsilon=0.001
+        trust_matrix=trust_matrix, pre_trust=pre_trust, max_iterations=2, epsilon=0.001
     )
 
     assert converged is False
@@ -124,11 +100,9 @@ def test_should_not_converge_if_max_iterations_reached():
 def test_should_handle_isolated_peer():
     """Test that algorithm handles peer with no incoming trust."""
     # Peer 0 has no incoming trust
-    trust_matrix = torch.tensor([
-        [0.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0],
-        [1.0, 1.0, 0.0]
-    ], dtype=torch.float32)
+    trust_matrix = torch.tensor(
+        [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [1.0, 1.0, 0.0]], dtype=torch.float32
+    )
 
     # Normalize columns
     column_sums = trust_matrix.sum(dim=0)
@@ -138,10 +112,7 @@ def test_should_handle_isolated_peer():
     pre_trust = torch.ones(3) / 3.0
 
     global_trust, _, converged = compute_eigentrust(
-        trust_matrix=trust_matrix,
-        pre_trust=pre_trust,
-        max_iterations=100,
-        epsilon=0.001
+        trust_matrix=trust_matrix, pre_trust=pre_trust, max_iterations=100, epsilon=0.001
     )
 
     # Peer 0 should have very low trust

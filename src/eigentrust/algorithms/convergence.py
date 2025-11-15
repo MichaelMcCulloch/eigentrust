@@ -3,8 +3,9 @@
 Provides functions to check if trust scores have converged.
 """
 
-import torch
 from typing import NamedTuple
+
+import torch
 
 
 class ConvergenceStatus(NamedTuple):
@@ -14,15 +15,13 @@ class ConvergenceStatus(NamedTuple):
         converged: Whether trust scores have converged
         delta: Magnitude of change (norm of difference)
     """
+
     converged: bool
     delta: float
 
 
 def check_convergence(
-    t_old: torch.Tensor,
-    t_new: torch.Tensor,
-    epsilon: float,
-    norm_type: str = 'l1'
+    t_old: torch.Tensor, t_new: torch.Tensor, epsilon: float, norm_type: str = "l1"
 ) -> ConvergenceStatus:
     """Check if trust scores have converged.
 
@@ -50,17 +49,15 @@ def check_convergence(
     """
     # Validate same size
     if t_old.shape != t_new.shape:
-        raise ValueError(
-            f"Trust vectors must have same size: {t_old.shape} vs {t_new.shape}"
-        )
+        raise ValueError(f"Trust vectors must have same size: {t_old.shape} vs {t_new.shape}")
 
     # Compute difference vector
     diff = t_new - t_old
 
     # Compute norm based on type
-    if norm_type == 'l1':
+    if norm_type == "l1":
         delta = torch.norm(diff, p=1).item()
-    elif norm_type == 'l2':
+    elif norm_type == "l2":
         delta = torch.norm(diff, p=2).item()
     else:
         raise ValueError(f"Invalid norm type: {norm_type}. Use 'l1' or 'l2'")

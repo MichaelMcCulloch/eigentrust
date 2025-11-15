@@ -4,12 +4,13 @@ Implements command-line interface using Typer framework.
 """
 
 import json
-import typer
 from pathlib import Path
-from typing import Optional
-from typing_extensions import Annotated
+from typing import Annotated
+
+import typer
+
 from eigentrust.simulation.network import create_network
-from eigentrust.utils.io import save_simulation, load_simulation
+from eigentrust.utils.io import load_simulation, save_simulation
 
 app = typer.Typer(
     name="eigentrust",
@@ -29,7 +30,7 @@ def create(
         typer.Option(help="Output file path for simulation"),
     ] = Path("simulation.json"),
     seed: Annotated[
-        Optional[int],
+        int | None,
         typer.Option(help="Random seed for reproducibility"),
     ] = None,
     preset: Annotated[
@@ -58,14 +59,8 @@ def create(
 
         if preset == "adversarial":
             # Count peer types
-            good_peers = sum(
-                1 for p in sim.peers
-                if p.competence <= 0.2 and p.maliciousness <= 0.2
-            )
-            bad_peers = sum(
-                1 for p in sim.peers
-                if p.competence >= 0.8 and p.maliciousness >= 0.8
-            )
+            good_peers = sum(1 for p in sim.peers if p.competence <= 0.2 and p.maliciousness <= 0.2)
+            bad_peers = sum(1 for p in sim.peers if p.competence >= 0.8 and p.maliciousness >= 0.8)
             neutral_peers = len(sim.peers) - good_peers - bad_peers
 
             typer.echo(f"  - {good_peers} good peers (competent & altruistic)")
@@ -98,7 +93,10 @@ def simulate(
     ] = Path("simulation_with_interactions.json"),
     preferential_attachment: Annotated[
         bool,
-        typer.Option("--preferential-attachment/--random", help="Use Barabási-Albert preferential attachment (default: random)"),
+        typer.Option(
+            "--preferential-attachment/--random",
+            help="Use Barabási-Albert preferential attachment (default: random)",
+        ),
     ] = False,
     verbose: Annotated[
         bool,
@@ -118,8 +116,7 @@ def simulate(
             typer.echo(f"Simulating {interactions} peer-to-peer interactions ({mode})...")
 
         new_interactions = sim.simulate_interactions(
-            interactions,
-            use_preferential_attachment=preferential_attachment
+            interactions, use_preferential_attachment=preferential_attachment
         )
 
         # Save updated simulation
@@ -131,10 +128,8 @@ def simulate(
 
         # Count outcomes
         from eigentrust.domain.interaction import InteractionOutcome
-        success_count = sum(
-            1 for i in new_interactions
-            if i.outcome == InteractionOutcome.SUCCESS
-        )
+
+        success_count = sum(1 for i in new_interactions if i.outcome == InteractionOutcome.SUCCESS)
         failure_count = len(new_interactions) - success_count
         typer.echo(f"  - Successes: {success_count}")
         typer.echo(f"  - Failures: {failure_count}")
@@ -183,19 +178,16 @@ def run(
 
         # Check for interactions
         if len(sim.interactions) == 0:
-            typer.echo(
-                "Warning: No interactions found. Run 'simulate' command first.",
-                err=True
-            )
+            typer.echo("Warning: No interactions found. Run 'simulate' command first.", err=True)
 
         # Run EigenTrust algorithm
         if verbose:
-            typer.echo(f"Running EigenTrust algorithm (max_iterations={max_iterations}, epsilon={epsilon})...")
+            typer.echo(
+                f"Running EigenTrust algorithm (max_iterations={max_iterations}, epsilon={epsilon})..."
+            )
 
         trust_scores = sim.run_algorithm(
-            max_iterations=max_iterations,
-            epsilon=epsilon,
-            track_history=track_history
+            max_iterations=max_iterations, epsilon=epsilon, track_history=track_history
         )
 
         # Save results
@@ -208,11 +200,7 @@ def run(
 
         # Show top trust scores
         typer.echo("\nTop Trust Scores:")
-        sorted_scores = sorted(
-            trust_scores.scores.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        sorted_scores = sorted(trust_scores.scores.items(), key=lambda x: x[1], reverse=True)
         for i, (peer_id, score) in enumerate(sorted_scores[:5], 1):
             peer = next(p for p in sim.peers if p.peer_id == peer_id)
             typer.echo(
@@ -293,7 +281,7 @@ def visualize_matrix(
         typer.Option(help="Output image file path"),
     ] = Path("trust_matrix.png"),
     title: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(help="Title for the visualization"),
     ] = None,
     colormap: Annotated[
@@ -305,7 +293,7 @@ def visualize_matrix(
         typer.Option(help="Resolution (DPI) for output image"),
     ] = 300,
     annotate: Annotated[
-        Optional[bool],
+        bool | None,
         typer.Option(help="Force show/hide cell annotations (auto if not specified)"),
     ] = None,
     verbose: Annotated[
@@ -322,27 +310,19 @@ def visualize_matrix(
 
         # Check for algorithm results
         if not any(p.global_trust is not None for p in sim.peers):
-            typer.echo(
-                "Warning: No trust scores found. Run 'run' command first.",
-                err=True
-            )
+            typer.echo("Warning: No trust scores found. Run 'run' command first.", err=True)
 
         # Create visualizer
         if verbose:
-            typer.echo(f"Generating trust matrix visualization...")
+            typer.echo("Generating trust matrix visualization...")
 
         from eigentrust.visualization.matrix_viz import MatrixVisualizer
-        visualizer = MatrixVisualizer(
-            colormap=colormap,
-            dpi=dpi
-        )
+
+        visualizer = MatrixVisualizer(colormap=colormap, dpi=dpi)
 
         # Generate visualization
         visualizer.visualize(
-            simulation=sim,
-            output_path=output,
-            title=title,
-            show_annotations=annotate
+            simulation=sim, output_path=output, title=title, show_annotations=annotate
         )
 
         # Output success
@@ -366,7 +346,7 @@ def visualize_graph(
         typer.Option(help="Output image file path"),
     ] = Path("trust_graph.png"),
     title: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(help="Title for the visualization"),
     ] = None,
     layout: Annotated[
@@ -399,21 +379,17 @@ def visualize_graph(
 
         # Create visualizer
         if verbose:
-            typer.echo(f"Generating trust graph visualization...")
+            typer.echo("Generating trust graph visualization...")
 
         from eigentrust.visualization.graph_viz import GraphVisualizer
+
         visualizer = GraphVisualizer(
-            dpi=dpi,
-            edge_threshold=edge_threshold,
-            layout_algorithm=layout
+            dpi=dpi, edge_threshold=edge_threshold, layout_algorithm=layout
         )
 
         # Generate visualization
         visualizer.visualize(
-            simulation=sim,
-            output_path=output,
-            title=title,
-            show_labels=show_labels
+            simulation=sim, output_path=output, title=title, show_labels=show_labels
         )
 
         # Output success
@@ -437,7 +413,7 @@ def visualize_convergence(
         typer.Option(help="Output image file path"),
     ] = Path("convergence.png"),
     title: Annotated[
-        Optional[str],
+        str | None,
         typer.Option(help="Title for the visualization"),
     ] = None,
     top_n: Annotated[
@@ -464,23 +440,20 @@ def visualize_convergence(
         if not sim.convergence_history:
             typer.echo(
                 "Error: No convergence history found. Run 'run' command with --track-history flag.",
-                err=True
+                err=True,
             )
             raise typer.Exit(1)
 
         # Create visualizer
         if verbose:
-            typer.echo(f"Generating convergence visualization...")
+            typer.echo("Generating convergence visualization...")
 
         from eigentrust.visualization.formatters import ConvergencePlotter
+
         plotter = ConvergencePlotter(dpi=dpi, show_top_n=top_n)
 
         # Generate visualization
-        plotter.visualize(
-            simulation=sim,
-            output_path=output,
-            title=title
-        )
+        plotter.visualize(simulation=sim, output_path=output, title=title)
 
         # Output success
         typer.echo(f"Convergence visualization saved to: {output}")
@@ -519,12 +492,15 @@ def all(
         typer.Option(help="Output directory for all files"),
     ] = Path("."),
     seed: Annotated[
-        Optional[int],
+        int | None,
         typer.Option(help="Random seed for reproducibility"),
     ] = None,
     preferential_attachment: Annotated[
         bool,
-        typer.Option("--preferential-attachment/--random", help="Use Barabási-Albert preferential attachment (default: random)"),
+        typer.Option(
+            "--preferential-attachment/--random",
+            help="Use Barabási-Albert preferential attachment (default: random)",
+        ),
     ] = False,
 ) -> None:
     """Run complete EigenTrust pipeline: create -> simulate -> run -> visualize."""
@@ -539,9 +515,11 @@ def all(
         # Step 1: Create network
         typer.echo("\n[1/5] Creating peer network...")
         from eigentrust.simulation.network import create_network
+
         sim = create_network(peer_count=peers, preset=preset, seed=seed)
         network_file = output_dir / "network.json"
         from eigentrust.utils.io import save_simulation
+
         save_simulation(sim, network_file)
         typer.echo(f"  ✓ Created {len(sim.peers)} peers")
 
@@ -553,20 +531,16 @@ def all(
         save_simulation(sim, sim_file)
 
         from eigentrust.domain.interaction import InteractionOutcome
-        success_count = sum(
-            1 for i in sim.interactions
-            if i.outcome == InteractionOutcome.SUCCESS
-        )
+
+        success_count = sum(1 for i in sim.interactions if i.outcome == InteractionOutcome.SUCCESS)
         typer.echo(f"  ✓ Simulated {len(sim.interactions)} interactions")
         typer.echo(f"    - Successes: {success_count}")
         typer.echo(f"    - Failures: {len(sim.interactions) - success_count}")
 
         # Step 3: Run EigenTrust algorithm
-        typer.echo(f"\n[3/5] Running EigenTrust algorithm...")
+        typer.echo("\n[3/5] Running EigenTrust algorithm...")
         trust_scores = sim.run_algorithm(
-            max_iterations=max_iterations,
-            epsilon=epsilon,
-            track_history=True
+            max_iterations=max_iterations, epsilon=epsilon, track_history=True
         )
         results_file = output_dir / "results.json"
         save_simulation(sim, results_file)
@@ -574,10 +548,11 @@ def all(
         typer.echo(f"    - Converged: {trust_scores.converged}")
 
         # Step 4: Generate visualizations
-        typer.echo(f"\n[4/5] Generating visualizations...")
+        typer.echo("\n[4/5] Generating visualizations...")
 
         # Matrix visualization
         from eigentrust.visualization.matrix_viz import MatrixVisualizer
+
         matrix_viz = MatrixVisualizer()
         matrix_file = output_dir / "trust_matrix.png"
         matrix_viz.visualize(sim, matrix_file)
@@ -585,6 +560,7 @@ def all(
 
         # Graph visualization
         from eigentrust.visualization.graph_viz import GraphVisualizer
+
         graph_viz = GraphVisualizer()
         graph_file = output_dir / "trust_graph.png"
         graph_viz.visualize(sim, graph_file)
@@ -592,25 +568,22 @@ def all(
 
         # Convergence visualization
         from eigentrust.visualization.formatters import ConvergencePlotter
+
         conv_plotter = ConvergencePlotter()
         conv_file = output_dir / "convergence.png"
         conv_plotter.visualize(sim, conv_file)
         typer.echo(f"  ✓ Convergence plot: {conv_file}")
 
         # Step 5: Summary
-        typer.echo(f"\n[5/5] Summary")
+        typer.echo("\n[5/5] Summary")
         typer.echo(f"  Peers: {len(sim.peers)}")
         typer.echo(f"  Interactions: {len(sim.interactions)}")
         typer.echo(f"  Iterations: {trust_scores.iteration_count}")
         typer.echo(f"  Converged: {trust_scores.converged}")
 
         # Show top trust scores
-        typer.echo(f"\n  Top 5 Trust Scores:")
-        sorted_scores = sorted(
-            trust_scores.scores.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )
+        typer.echo("\n  Top 5 Trust Scores:")
+        sorted_scores = sorted(trust_scores.scores.items(), key=lambda x: x[1], reverse=True)
         for i, (peer_id, score) in enumerate(sorted_scores[:5], 1):
             peer = next(p for p in sim.peers if p.peer_id == peer_id)
             typer.echo(
@@ -632,7 +605,7 @@ def all(
 @app.callback()
 def version_callback(
     version: Annotated[
-        Optional[bool],
+        bool | None,
         typer.Option("--version", help="Show version"),
     ] = None,
 ) -> None:

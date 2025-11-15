@@ -4,11 +4,10 @@ Simulates peer-to-peer interactions based on peer characteristics.
 """
 
 import random
-from typing import List, Optional
 from collections import defaultdict
 
-from eigentrust.domain.peer import Peer
 from eigentrust.domain.interaction import Interaction, InteractionOutcome
+from eigentrust.domain.peer import Peer
 
 
 def compute_interaction_outcome(peer: Peer, partner: Peer) -> InteractionOutcome:
@@ -49,15 +48,17 @@ def compute_interaction_outcome(peer: Peer, partner: Peer) -> InteractionOutcome
     final_prob = max(0.0, min(1.0, base_prob + noise))
 
     # Determine outcome
-    return InteractionOutcome.SUCCESS if random.random() < final_prob else InteractionOutcome.FAILURE
+    return (
+        InteractionOutcome.SUCCESS if random.random() < final_prob else InteractionOutcome.FAILURE
+    )
 
 
 def simulate_interactions(
-    peers: List[Peer],
+    peers: list[Peer],
     num_interactions: int,
-    seed: Optional[int] = None,
-    use_preferential_attachment: bool = False
-) -> List[Interaction]:
+    seed: int | None = None,
+    use_preferential_attachment: bool = False,
+) -> list[Interaction]:
     """Simulate interactions between peers with optional preferential attachment.
 
     Uses Barabási-Albert inspired preferential attachment where peers with more
@@ -133,9 +134,7 @@ def simulate_interactions(
 
         # Create interaction record
         interaction = Interaction(
-            source_peer_id=source.peer_id,
-            target_peer_id=target.peer_id,
-            outcome=outcome
+            source_peer_id=source.peer_id, target_peer_id=target.peer_id, outcome=outcome
         )
 
         interactions.append(interaction)

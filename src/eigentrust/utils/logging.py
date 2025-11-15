@@ -8,7 +8,7 @@ import logging
 import sys
 import uuid
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class JSONFormatter(logging.Formatter):
@@ -23,7 +23,7 @@ class JSONFormatter(logging.Formatter):
         Returns:
             JSON-formatted log string
         """
-        log_data: Dict[str, Any] = {
+        log_data: dict[str, Any] = {
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "level": record.levelname,
             "message": record.getMessage(),
@@ -50,7 +50,7 @@ class JSONFormatter(logging.Formatter):
 def setup_logging(
     level: str = "INFO",
     json_format: bool = False,
-    log_file: Optional[str] = None,
+    log_file: str | None = None,
 ) -> logging.Logger:
     """Configure structured logging for the application.
 

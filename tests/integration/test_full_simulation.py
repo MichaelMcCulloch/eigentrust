@@ -1,14 +1,11 @@
 """Integration test for full algorithm execution (T036)."""
 
-import pytest
-import torch
-from uuid import uuid4
 
-from eigentrust.domain.simulation import Simulation
+import pytest
+
 from eigentrust.domain.peer import Peer
+from eigentrust.domain.simulation import Simulation
 from eigentrust.simulation.interactions import simulate_interactions
-from eigentrust.algorithms.eigentrust import compute_eigentrust
-from eigentrust.algorithms.normalization import normalize_columns
 
 
 def test_should_execute_full_eigentrust_pipeline():
@@ -52,6 +49,7 @@ def test_should_handle_simulation_with_many_peers():
 
     # Create 10 peers with random characteristics
     import random
+
     random.seed(123)
 
     peers = []

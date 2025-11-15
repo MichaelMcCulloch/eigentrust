@@ -4,9 +4,8 @@ Defines interaction outcomes and interaction records between peers.
 """
 
 import uuid
-from enum import Enum
 from datetime import datetime
-from typing import Optional
+from enum import Enum
 
 
 class InteractionOutcome(Enum):
@@ -34,8 +33,8 @@ class Interaction:
         source_peer_id: str,
         target_peer_id: str,
         outcome: InteractionOutcome,
-        interaction_id: Optional[str] = None,
-        timestamp: Optional[datetime] = None,
+        interaction_id: str | None = None,
+        timestamp: datetime | None = None,
     ):
         """Initialize an interaction record.
 
@@ -52,17 +51,21 @@ class Interaction:
         if source_peer_id == target_peer_id:
             raise ValueError("Source and target must be different")
 
-        object.__setattr__(self, 'interaction_id',
-                          interaction_id if interaction_id is not None else str(uuid.uuid4()))
-        object.__setattr__(self, 'source_peer_id', source_peer_id)
-        object.__setattr__(self, 'target_peer_id', target_peer_id)
-        object.__setattr__(self, 'outcome', outcome)
-        object.__setattr__(self, 'timestamp',
-                          timestamp if timestamp is not None else datetime.utcnow())
+        object.__setattr__(
+            self,
+            "interaction_id",
+            interaction_id if interaction_id is not None else str(uuid.uuid4()),
+        )
+        object.__setattr__(self, "source_peer_id", source_peer_id)
+        object.__setattr__(self, "target_peer_id", target_peer_id)
+        object.__setattr__(self, "outcome", outcome)
+        object.__setattr__(
+            self, "timestamp", timestamp if timestamp is not None else datetime.utcnow()
+        )
 
     def __setattr__(self, name, value):
         """Prevent modification of attributes (immutability)."""
-        raise AttributeError(f"Cannot modify immutable Interaction object")
+        raise AttributeError("Cannot modify immutable Interaction object")
 
     def to_dict(self) -> dict:
         """Convert interaction to dictionary for serialization."""

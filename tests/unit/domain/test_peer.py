@@ -3,8 +3,10 @@
 Tests peer validation and characteristic assignment following TDD principles.
 """
 
-import pytest
 import uuid
+
+import pytest
+
 from eigentrust.domain import InvalidPeerCharacteristics
 
 

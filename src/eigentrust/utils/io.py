@@ -3,13 +3,18 @@
 Provides JSON and Pickle serialization for simulation state.
 """
 
+from __future__ import annotations
+
 import json
 import pickle
 from pathlib import Path
-from typing import Any, Dict
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from eigentrust.domain.simulation import Simulation
 
 
-def save_json(data: Dict[str, Any], file_path: str | Path) -> None:
+def save_json(data: dict[str, Any], file_path: str | Path) -> None:
     """Save data to JSON file.
 
     Args:
@@ -26,7 +31,7 @@ def save_json(data: Dict[str, Any], file_path: str | Path) -> None:
         json.dump(data, f, indent=2, default=str)
 
 
-def load_json(file_path: str | Path) -> Dict[str, Any]:
+def load_json(file_path: str | Path) -> dict[str, Any]:
     """Load data from JSON file.
 
     Args:
@@ -41,7 +46,7 @@ def load_json(file_path: str | Path) -> Dict[str, Any]:
     """
     path = Path(file_path)
 
-    with open(path, "r") as f:
+    with open(path) as f:
         return json.load(f)
 
 
@@ -93,7 +98,7 @@ def file_exists(file_path: str | Path) -> bool:
     return Path(file_path).exists()
 
 
-def save_simulation(simulation: "Simulation", file_path: str | Path) -> None:
+def save_simulation(simulation: Simulation, file_path: str | Path) -> None:
     """Save simulation to JSON file.
 
     Args:
@@ -103,13 +108,12 @@ def save_simulation(simulation: "Simulation", file_path: str | Path) -> None:
     Raises:
         IOError: If file cannot be written
     """
-    from eigentrust.domain.simulation import Simulation
 
     data = simulation.to_dict()
     save_json(data, file_path)
 
 
-def load_simulation(file_path: str | Path) -> "Simulation":
+def load_simulation(file_path: str | Path) -> Simulation:
     """Load simulation from JSON file.
 
     Args:

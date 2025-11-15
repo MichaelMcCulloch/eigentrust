@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from eigentrust.algorithms.convergence import check_convergence, ConvergenceStatus
+from eigentrust.algorithms.convergence import check_convergence
 
 
 def test_should_detect_convergence_when_delta_below_epsilon():
@@ -60,7 +60,7 @@ def test_should_use_l2_norm_if_specified():
     t_new = torch.tensor([0.25, 0.35, 0.4], dtype=torch.float32)
     epsilon = 0.5
 
-    status = check_convergence(t_old, t_new, epsilon, norm_type='l2')
+    status = check_convergence(t_old, t_new, epsilon, norm_type="l2")
 
     # L2 norm = sqrt((0.05)^2 + (0.05)^2 + (0.1)^2) = sqrt(0.0125) ≈ 0.1118
     expected_delta = 0.1118

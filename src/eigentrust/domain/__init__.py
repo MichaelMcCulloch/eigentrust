@@ -5,8 +5,6 @@ including custom exceptions for handling domain-specific errors.
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional
-
 
 # Value Objects
 
@@ -27,12 +25,12 @@ class TrustScores:
 
     def __init__(
         self,
-        scores: Dict[str, float],
+        scores: dict[str, float],
         iteration_count: int,
         converged: bool,
         convergence_epsilon: float,
         final_delta: float,
-        history: Optional[List["ConvergenceSnapshot"]] = None
+        history: list["ConvergenceSnapshot"] | None = None,
     ):
         """Initialize trust scores.
 
@@ -51,18 +49,12 @@ class TrustScores:
         total = sum(scores.values())
         if abs(total - 1.0) > 1e-6:
             raise TrustScoreError(
-                f"Global trust scores must sum to 1.0, got {total}",
-                scores,
-                total
+                f"Global trust scores must sum to 1.0, got {total}", scores, total
             )
 
         # Validate all scores are non-negative
         if any(score < 0.0 for score in scores.values()):
-            raise TrustScoreError(
-                "All trust scores must be non-negative",
-                scores,
-                total
-            )
+            raise TrustScoreError("All trust scores must be non-negative", scores, total)
 
         # Validate convergence consistency
         if converged and final_delta >= convergence_epsilon:
@@ -70,12 +62,12 @@ class TrustScores:
                 f"Convergence inconsistency: marked converged but delta ({final_delta}) >= epsilon ({convergence_epsilon})"
             )
 
-        object.__setattr__(self, 'scores', scores.copy())
-        object.__setattr__(self, 'iteration_count', iteration_count)
-        object.__setattr__(self, 'converged', converged)
-        object.__setattr__(self, 'convergence_epsilon', convergence_epsilon)
-        object.__setattr__(self, 'final_delta', final_delta)
-        object.__setattr__(self, 'history', history.copy() if history else [])
+        object.__setattr__(self, "scores", scores.copy())
+        object.__setattr__(self, "iteration_count", iteration_count)
+        object.__setattr__(self, "converged", converged)
+        object.__setattr__(self, "convergence_epsilon", convergence_epsilon)
+        object.__setattr__(self, "final_delta", final_delta)
+        object.__setattr__(self, "history", history.copy() if history else [])
 
     def __setattr__(self, name, value):
         """Prevent modification of attributes (immutability)."""
@@ -126,9 +118,9 @@ class ConvergenceSnapshot:
     def __init__(
         self,
         iteration: int,
-        trust_scores: Dict[str, float],
+        trust_scores: dict[str, float],
         delta: float,
-        timestamp: Optional[datetime] = None
+        timestamp: datetime | None = None,
     ):
         """Initialize convergence snapshot.
 
@@ -152,10 +144,10 @@ class ConvergenceSnapshot:
         if abs(total - 1.0) > 1e-6:
             raise ValueError(f"Trust scores must sum to 1.0, got {total}")
 
-        object.__setattr__(self, 'iteration', iteration)
-        object.__setattr__(self, 'trust_scores', trust_scores.copy())
-        object.__setattr__(self, 'delta', delta)
-        object.__setattr__(self, 'timestamp', timestamp or datetime.utcnow())
+        object.__setattr__(self, "iteration", iteration)
+        object.__setattr__(self, "trust_scores", trust_scores.copy())
+        object.__setattr__(self, "delta", delta)
+        object.__setattr__(self, "timestamp", timestamp or datetime.utcnow())
 
     def __setattr__(self, name, value):
         """Prevent modification of attributes (immutability)."""

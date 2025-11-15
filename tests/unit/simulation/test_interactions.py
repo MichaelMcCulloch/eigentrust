@@ -1,11 +1,9 @@
 """Unit tests for interaction outcome computation (T035)."""
 
-import pytest
 from unittest.mock import patch
-from uuid import uuid4
 
-from eigentrust.domain.peer import Peer
 from eigentrust.domain.interaction import InteractionOutcome
+from eigentrust.domain.peer import Peer
 from eigentrust.simulation.interactions import compute_interaction_outcome, simulate_interactions
 
 
@@ -16,7 +14,7 @@ def test_should_compute_success_for_competent_altruistic_peer():
     partner = Peer(competence=0.5, maliciousness=0.5)
 
     # Mock random to ensure deterministic test
-    with patch('eigentrust.simulation.interactions.random') as mock_random:
+    with patch("eigentrust.simulation.interactions.random") as mock_random:
         mock_random.random.return_value = 0.5  # Below high success threshold
         mock_random.gauss.return_value = 0.0  # No noise
 
@@ -33,7 +31,7 @@ def test_should_compute_failure_for_incompetent_malicious_peer():
     peer = Peer(competence=1.0, maliciousness=1.0)
     partner = Peer(competence=0.5, maliciousness=0.5)
 
-    with patch('eigentrust.simulation.interactions.random') as mock_random:
+    with patch("eigentrust.simulation.interactions.random") as mock_random:
         mock_random.random.return_value = 0.1  # Any value > 0
         mock_random.gauss.return_value = 0.0
 
@@ -49,7 +47,7 @@ def test_should_incorporate_randomness_with_noise():
     peer = Peer(competence=0.5, maliciousness=0.5)
     partner = Peer(competence=0.5, maliciousness=0.5)
 
-    with patch('eigentrust.simulation.interactions.random') as mock_random:
+    with patch("eigentrust.simulation.interactions.random") as mock_random:
         # Base probability: (1-0.5)*(1-0.5) = 0.25
         # Add noise: 0.25 + 0.05 = 0.30
         mock_random.gauss.return_value = 0.05
@@ -65,7 +63,7 @@ def test_should_clamp_probability_to_zero_one_range():
     peer = Peer(competence=0.0, maliciousness=0.0)
     partner = Peer(competence=0.5, maliciousness=0.5)
 
-    with patch('eigentrust.simulation.interactions.random') as mock_random:
+    with patch("eigentrust.simulation.interactions.random") as mock_random:
         # Base: 1.0, noise: +0.5, clamped to 1.0
         mock_random.gauss.return_value = 0.5
         mock_random.random.return_value = 0.99
@@ -87,10 +85,16 @@ def test_should_simulate_multiple_interactions():
     interactions = simulate_interactions(peers, num_interactions=10, seed=42)
 
     assert len(interactions) == 10
-    assert all(interaction.source_peer_id in [p.peer_id for p in peers] for interaction in interactions)
-    assert all(interaction.target_peer_id in [p.peer_id for p in peers] for interaction in interactions)
+    assert all(
+        interaction.source_peer_id in [p.peer_id for p in peers] for interaction in interactions
+    )
+    assert all(
+        interaction.target_peer_id in [p.peer_id for p in peers] for interaction in interactions
+    )
     # Source and target should be different
-    assert all(interaction.source_peer_id != interaction.target_peer_id for interaction in interactions)
+    assert all(
+        interaction.source_peer_id != interaction.target_peer_id for interaction in interactions
+    )
 
 
 def test_should_respect_random_seed_for_reproducibility():

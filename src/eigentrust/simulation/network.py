@@ -4,19 +4,19 @@ Provides functions to create peer networks with different characteristic distrib
 """
 
 import random
-from typing import Optional
+
 from eigentrust.domain import InsufficientPeersError, InvalidPeerCharacteristics
 from eigentrust.domain.simulation import Simulation
 from eigentrust.simulation.behaviors import (
-    generate_random_characteristics,
     generate_adversarial_characteristics,
+    generate_random_characteristics,
 )
 
 
 def create_network(
     peer_count: int,
     preset: str = "random",
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> Simulation:
     """Create a new peer network simulation with configured characteristics.
 
@@ -51,8 +51,7 @@ def create_network(
     valid_presets = ["random", "uniform", "adversarial"]
     if preset not in valid_presets:
         raise ValueError(
-            f"Invalid preset '{preset}'. "
-            f"Must be one of: {', '.join(valid_presets)}"
+            f"Invalid preset '{preset}'. " f"Must be one of: {', '.join(valid_presets)}"
         )
 
     # Create simulation
@@ -82,7 +81,7 @@ def create_network(
 
 def create_network_with_characteristics(
     characteristics: list[tuple[float, float]],
-    seed: Optional[int] = None,
+    seed: int | None = None,
 ) -> Simulation:
     """Create network with explicitly specified peer characteristics.
 

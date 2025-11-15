@@ -4,7 +4,7 @@ Represents an individual node in the peer-to-peer network with behavioral charac
 """
 
 import uuid
-from typing import Optional
+
 from eigentrust.domain import InvalidPeerCharacteristics
 
 
@@ -24,8 +24,8 @@ class Peer:
         self,
         competence: float,
         maliciousness: float,
-        peer_id: Optional[str] = None,
-        display_name: Optional[str] = None,
+        peer_id: str | None = None,
+        display_name: str | None = None,
     ):
         """Initialize a new peer with characteristics.
 
@@ -57,7 +57,7 @@ class Peer:
         self.peer_id = peer_id if peer_id is not None else str(uuid.uuid4())
         self.competence = competence
         self.maliciousness = maliciousness
-        self.global_trust: Optional[float] = None
+        self.global_trust: float | None = None
         self.local_trust: dict[str, float] = {}
 
         # Generate display name if not provided
@@ -124,8 +124,7 @@ class Peer:
         total_trust = sum(self.local_trust.values())
         if total_trust > 0:
             self.local_trust = {
-                peer_id: trust / total_trust
-                for peer_id, trust in self.local_trust.items()
+                peer_id: trust / total_trust for peer_id, trust in self.local_trust.items()
             }
 
     def __repr__(self) -> str:

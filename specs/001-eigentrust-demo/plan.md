@@ -9,7 +9,7 @@
 
 Build a CLI application that demonstrates the EigenTrust peer-to-peer trust algorithm through simulation and visualization. The application will simulate a network of peers with configurable characteristics (competence and maliciousness on [0,1] scales), execute the EigenTrust algorithm to compute global trust scores, and visualize results through matrix displays and directed graph representations. The system must support iterative algorithm execution to demonstrate convergence properties, handle edge cases gracefully, and provide educational insights into how trust propagates through peer networks.
 
-**Technical Approach**: Use PyTorch for tensor-based matrix operations (EigenTrust eigenvector computation), NetworkX for graph modeling and algorithms, NumPy for numerical operations, and Typer for CLI interface. Visualizations will be generated using Matplotlib for matrix heatmaps and NetworkX + Matplotlib for graph rendering. Optional Triton kernels may accelerate large-scale matrix operations. The application follows a single-project structure with domain-driven design, separating simulation logic, algorithm computation, and visualization concerns.
+**Technical Approach**: Use PyTorch for tensor-based matrix operations (EigenTrust eigenvector computation with power iteration method), NetworkX for graph modeling and algorithms, NumPy for numerical operations, and Typer for CLI interface. Visualizations will be generated using Matplotlib for matrix heatmaps, graph rendering, and convergence plots. The EigenTrust implementation includes PageRank-style damping factor (α=0.15) with quality-based pre-trust, and supports Barabási-Albert preferential attachment for realistic network formation. The application follows a single-project structure with domain-driven design, separating simulation logic, algorithm computation, and visualization concerns.
 
 ## Technical Context
 
@@ -31,6 +31,7 @@ Build a CLI application that demonstrates the EigenTrust peer-to-peer trust algo
 - Networks up to 100 peers: <5 minutes for full simulation cycle
 - Algorithm convergence: <100 iterations for 99% of 50-peer networks
 - Visualization rendering: <10 seconds for 50-peer graphs
+- Matrix visualization: Auto-annotation threshold at 20×20 for performance
 
 **Constraints**:
 - Minimal dependencies (PyTorch, NumPy, NetworkX, Matplotlib, Typer as core)
@@ -266,6 +267,271 @@ README.md                    # Project overview and quickstart
 ```
 
 **Structure Decision**: Single project structure selected. This is a CLI application with no frontend/backend separation. The domain-driven design is reflected in the `src/eigentrust/domain/` module containing pure domain entities (Peer, Interaction, TrustMatrix, Simulation). Algorithm logic is isolated in `algorithms/`, simulation engine in `simulation/`, and visualization in `visualization/`. The CLI serves as the application layer orchestrating these components. Tests are organized by tier (unit/integration/performance) as per constitutional requirements.
+
+## Implementation Features
+
+### CLI Commands (8 Total)
+
+**1. `create` - Create Network Simulation**
+- `--peers` (default: 10): Number of peers in network (2-500)
+- `--output` (default: simulation.json): Output file path
+- `--seed`: Random seed for reproducibility
+- `--preset` (default: "random"): Peer distribution preset
+  - `random`: Uniform random characteristics [0.0, 1.0]
+  - `uniform`: All peers at (0.5, 0.5) - morally neutral
+  - `adversarial`: Mixed population (30% good, 40% neutral, 30% bad)
+- `--verbose`: Enable verbose logging
+
+**2. `simulate` - Simulate Peer Interactions**
+- `--input`: Input simulation file (required)
+- `--interactions` (default: 100): Number of interactions to simulate
+- `--output` (default: simulation_with_interactions.json): Output file path
+- `--preferential-attachment`: Use Barabási-Albert preferential attachment (scale-free network)
+- `--random`: Use uniform random target selection (default)
+- `--verbose`: Enable verbose logging
+
+**3. `run` - Execute EigenTrust Algorithm**
+- `--input`: Input simulation file (required)
+- `--max-iterations` (default: 100): Maximum algorithm iterations
+- `--epsilon` (default: 0.001): Convergence threshold
+- `--output` (default: simulation_results.json): Output file path
+- `--track-history`: Track iteration-by-iteration convergence history (required for convergence visualization)
+- `--verbose`: Enable verbose logging
+
+**4. `info` - Display Simulation Information**
+- `--input`: Input simulation file (required)
+- `--format` (default: "text"): Output format ("text" or "json")
+
+**5. `visualize-matrix` - Generate Trust Matrix Heatmap**
+- `--input`: Input simulation file (required)
+- `--output` (default: trust_matrix.png): Output image path
+- `--title`: Custom plot title
+- `--colormap` (default: "viridis"): Matplotlib colormap (viridis, plasma, inferno, magma, cividis, coolwarm, etc.)
+- `--dpi` (default: 300): Image resolution in DPI
+- `--annotate`: Force show/hide cell value annotations (auto-detects based on matrix size ≤20×20)
+- `--verbose`: Enable verbose logging
+
+**6. `visualize-graph` - Generate Trust Network Graph**
+- `--input`: Input simulation file (required)
+- `--output` (default: trust_graph.png): Output image path
+- `--title`: Custom plot title
+- `--layout` (default: "spring"): Graph layout algorithm
+  - `spring`: Force-directed layout (weight-aware)
+  - `circular`: Circular layout
+  - `kamada_kawai`: Kamada-Kawai layout (weight-aware)
+- `--edge-threshold` (default: 0.01): Minimum trust value to display edge
+- `--dpi` (default: 300): Image resolution in DPI
+- `--show-labels` (default: True): Show peer names as node labels
+- `--verbose`: Enable verbose logging
+
+**Visual Encoding**:
+- **Node color**: Red (malicious) ↔ Green (altruistic) based on maliciousness score
+- **Node size**: Proportional to global trust score
+- **Edge width**: Proportional to local trust value
+- **Edge direction**: Arrow shows trust direction (A→B means A trusts B)
+
+**7. `visualize-convergence` - Generate Convergence History Plot**
+- `--input`: Input simulation file (required, must have convergence history from `run --track-history`)
+- `--output` (default: convergence.png): Output image path
+- `--title`: Custom plot title
+- `--top-n` (default: 5): Number of top peers to highlight in evolution plot
+- `--dpi` (default: 300): Image resolution in DPI
+- `--verbose`: Enable verbose logging
+
+**Plot Structure**:
+- **Top subplot**: Trust score evolution for top-N peers + average of remaining peers
+- **Bottom subplot**: Convergence delta (log scale) with epsilon threshold line and convergence point annotation
+
+**8. `all` - Complete Pipeline**
+Executes full workflow: create → simulate → run → visualize (matrix + graph + convergence)
+
+- `--peers` (default: 10): Number of peers
+- `--interactions` (default: 100): Number of interactions to simulate
+- `--max-iterations` (default: 100): Maximum EigenTrust iterations
+- `--epsilon` (default: 0.001): Convergence threshold
+- `--preset` (default: "random"): Peer distribution preset (random/uniform/adversarial)
+- `--output-dir` (default: .): Output directory for all generated files
+- `--seed`: Random seed for reproducibility
+- `--preferential-attachment`: Use preferential attachment model
+- `--random`: Use random interaction model (default)
+
+**Generated files**: `simulation.json`, `simulation_with_interactions.json`, `simulation_results.json`, `trust_matrix.png`, `trust_graph.png`, `convergence.png`
+
+### Advanced Algorithm Features
+
+**1. Damping Factor with Pre-Trust (PageRank-style)**
+- **Damping parameter**: α = 0.15 (configurable, default in code)
+- **Algorithm formula**: `t_{k+1} = (1 - α) * C^T * t_k + α * p`
+  - `C`: Column-stochastic trust matrix
+  - `t_k`: Trust vector at iteration k
+  - `p`: Pre-trust vector (quality-based prior)
+- **Pre-trust calculation**: Derived from interaction success rates
+  - Peers with higher success rates receive higher pre-trust
+  - Normalized to sum to 1.0
+- **Purpose**: Prevents rank sink and convergence to uniform distribution
+- **Disable**: Set α = 0.0 for pure EigenTrust without damping
+
+**2. Convergence Detection**
+- **Norm types**: L1 and L2 distance metrics
+- **Threshold**: Configurable epsilon (default: 0.001)
+- **Detection**: `||t_{k+1} - t_k|| < epsilon`
+- **Output**: Convergence status, final delta, iteration count
+
+**3. History Tracking**
+- **Optional feature**: Enabled via `--track-history` flag
+- **Data captured**:
+  - Trust scores at each iteration
+  - Delta magnitude at each iteration
+  - Timestamps for each snapshot
+- **Storage**: Embedded in simulation JSON file
+- **Required for**: Convergence visualization
+
+**4. Column-Stochastic Normalization**
+- **Method**: Normalize each column to sum to 1.0
+- **Zero-column handling**: Peers with no incoming trust → uniform distribution (1/N)
+- **Invariant**: Matrix columns always sum to 1.0 after normalization
+
+### Network Topology Models
+
+**1. Peer Distribution Presets**
+
+- **Random** (default):
+  - Competence: Uniform [0.0, 1.0]
+  - Maliciousness: Uniform [0.0, 1.0]
+
+- **Uniform**:
+  - All peers: (0.5, 0.5) - morally neutral, ready to learn
+
+- **Adversarial**:
+  - 30% good peers: competence [0.0-0.2], maliciousness [0.0-0.2]
+  - 40% neutral peers: competence [0.4-0.6], maliciousness [0.4-0.6]
+  - 30% bad peers: competence [0.8-1.0], maliciousness [0.8-1.0]
+
+**2. Interaction Models**
+
+- **Random Selection** (default, `--random` flag):
+  - Source peer: Uniformly random
+  - Target peer: Uniformly random (excluding source)
+  - Creates Erdős-Rényi random graph properties
+
+- **Barabási-Albert Preferential Attachment** (`--preferential-attachment` flag):
+  - Source peer: Uniformly random
+  - Target peer: Weighted by cumulative successful interactions
+  - Selection probability ∝ (successful_interactions + 1)
+  - Creates scale-free, small-world network properties
+  - Base count (+1) prevents zero-probability peers
+  - **Purpose**: Models realistic peer selection dynamics (popular peers attract more interactions)
+
+**3. Interaction Outcome Model**
+
+- **Success probability formula**:
+  ```
+  P(success) = (1 - competence) * (1 - maliciousness) + noise
+  ```
+  - Gaussian noise: μ=0, σ=0.05
+  - Clamped to [0.0, 1.0]
+
+- **Interpretation**:
+  - Low competence + low maliciousness → high success rate
+  - High competence + high maliciousness → low success rate
+  - Noise adds realistic variability
+
+- **Local trust updates**:
+  - Success: +0.1 to local trust
+  - Failure: -0.1 to local trust
+  - Initial trust: 0.5 (neutral)
+  - Normalized after each update
+
+### Visualization Capabilities
+
+**1. Trust Matrix Heatmap** (`visualize-matrix`)
+- **Format**: N×N heatmap with colorbar
+- **Colormaps**: All Matplotlib colormaps supported (viridis, plasma, inferno, magma, cividis, coolwarm, RdYlGn, etc.)
+- **Annotations**:
+  - Automatic: Shown if matrix size ≤ 20×20
+  - Manual override: `--annotate` flag
+- **Grid**: White lines separating cells
+- **Labels**: Peer display names on both axes
+- **Resolution**: Configurable DPI (default: 300)
+
+**2. Trust Network Graph** (`visualize-graph`)
+- **Graph type**: Directed graph (NetworkX DiGraph)
+- **Visual encoding** (multi-dimensional):
+  - **Node color**: Red (malicious=1.0) ↔ Green (altruistic=0.0)
+  - **Node size**: Proportional to global trust score (range: 300-3000)
+  - **Edge width**: Proportional to local trust value (range: 0.5-5.0)
+  - **Edge filtering**: Minimum threshold (default: 0.01) to reduce clutter
+- **Layout algorithms**:
+  - **Spring** (default): Force-directed, weight-aware (trusted peers cluster)
+  - **Circular**: Peers arranged in circle
+  - **Kamada-Kawai**: Force-directed, weight-aware, emphasis on distance
+- **Labels**: Optional peer names (default: shown)
+- **Legend**: Explains color and size encoding
+- **Resolution**: Configurable DPI (default: 300)
+
+**3. Convergence Plot** (`visualize-convergence`)
+- **Requirements**: Must run `run --track-history` first
+- **Two-subplot layout**:
+
+  **Top subplot - Trust Evolution**:
+  - X-axis: Iteration number
+  - Y-axis: Trust score [0.0, 1.0]
+  - Lines: Top-N peers (default: 5) + average of remaining peers
+  - Legend: Peer identifiers with final scores
+
+  **Bottom subplot - Convergence Delta**:
+  - X-axis: Iteration number (shared with top)
+  - Y-axis: Delta magnitude (log scale)
+  - Line: Convergence metric (L1 or L2 norm)
+  - Threshold: Horizontal line at epsilon
+  - Annotation: Marks convergence point with iteration number
+
+- **Purpose**: Shows how trust scores evolve and when algorithm stabilizes
+- **Resolution**: Configurable DPI (default: 300)
+
+### Data Persistence
+
+**Format**: JSON (human-readable, version-controllable)
+
+**Simulation State Contents**:
+- Simulation metadata (ID, timestamp, state, random seed)
+- Peer roster (IDs, display names, competence, maliciousness, trust scores)
+- Interaction history (source, target, outcome, timestamp)
+- Trust matrix (if computed)
+- Convergence history (if tracked)
+  - Per-iteration snapshots
+  - Trust vectors at each iteration
+  - Delta magnitudes
+  - Timestamps
+
+**Operations**:
+- Save complete simulation to JSON file
+- Load simulation from JSON file
+- Incremental updates (interactions → trust computation)
+- Cross-command pipeline support
+
+### Error Handling and Validation
+
+**Custom Domain Exceptions** (10 total):
+- `InvalidPeerCharacteristics`: Competence/maliciousness out of [0.0, 1.0]
+- `ConvergenceError`: Algorithm fails to converge within max iterations
+- `MatrixNormalizationError`: Trust matrix normalization failures
+- `InvalidSimulationState`: State transitions violated
+- `InsufficientDataError`: Cannot compute trust with zero interactions
+- Additional exceptions for file I/O, visualization, CLI validation
+
+**Invariant Enforcement**:
+- Peer characteristics always in [0.0, 1.0]
+- Trust scores always in [0.0, 1.0]
+- Trust scores sum to 1.0 (normalized)
+- Matrix columns sum to 1.0 (column-stochastic)
+- Non-negative local trust values
+
+**Context-Rich Errors**:
+- Operation attempted
+- Peer IDs involved
+- Current state (iteration, convergence status)
+- Suggested remediation
 
 ## Complexity Tracking
 
