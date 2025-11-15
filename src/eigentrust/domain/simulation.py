@@ -20,7 +20,7 @@ from eigentrust.domain import (
 from eigentrust.domain.peer import Peer
 from eigentrust.domain.interaction import Interaction, InteractionOutcome
 from eigentrust.domain.trust_matrix import TrustMatrix
-from eigentrust.algorithms.eigentrust import compute_eigentrust
+from eigentrust.algorithms.eigentrust import compute_eigentrust, compute_eigentrust_with_history
 from eigentrust.algorithms.normalization import normalize_columns
 from eigentrust.simulation.interactions import simulate_interactions
 
@@ -165,13 +165,25 @@ class Simulation:
             n = len(self.peers)
             pre_trust = torch.ones(n) / n
 
-            # Run EigenTrust algorithm
-            global_trust_vector, iterations, converged = compute_eigentrust(
-                trust_matrix=normalized_matrix,
-                pre_trust=pre_trust,
-                max_iterations=max_iterations,
-                epsilon=epsilon
-            )
+            # Run EigenTrust algorithm with or without history tracking
+            if track_history:
+                peer_ids = list(trust_matrix.peer_mapping.keys())
+                global_trust_vector, iterations, converged, history = compute_eigentrust_with_history(
+                    trust_matrix=normalized_matrix,
+                    pre_trust=pre_trust,
+                    peer_ids=peer_ids,
+                    max_iterations=max_iterations,
+                    epsilon=epsilon
+                )
+                # Store convergence history
+                self.convergence_history = history
+            else:
+                global_trust_vector, iterations, converged = compute_eigentrust(
+                    trust_matrix=normalized_matrix,
+                    pre_trust=pre_trust,
+                    max_iterations=max_iterations,
+                    epsilon=epsilon
+                )
 
             # Convert tensor to dictionary mapping peer IDs to scores
             peer_ids = list(trust_matrix.peer_mapping.keys())

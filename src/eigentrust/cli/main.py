@@ -156,6 +156,10 @@ def run(
         Path,
         typer.Option(help="Output file path"),
     ] = Path("simulation_results.json"),
+    track_history: Annotated[
+        bool,
+        typer.Option(help="Track convergence history (needed for convergence visualization)"),
+    ] = False,
     verbose: Annotated[
         bool,
         typer.Option(help="Enable verbose logging"),
@@ -182,7 +186,7 @@ def run(
         trust_scores = sim.run_algorithm(
             max_iterations=max_iterations,
             epsilon=epsilon,
-            track_history=False
+            track_history=track_history
         )
 
         # Save results
@@ -410,6 +414,202 @@ def visualize_graph(
 
     except Exception as e:
         typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+
+
+@app.command()
+def visualize_convergence(
+    input: Annotated[
+        Path,
+        typer.Option(help="Input simulation file (must have convergence history)"),
+    ],
+    output: Annotated[
+        Path,
+        typer.Option(help="Output image file path"),
+    ] = Path("convergence.png"),
+    title: Annotated[
+        Optional[str],
+        typer.Option(help="Title for the visualization"),
+    ] = None,
+    top_n: Annotated[
+        int,
+        typer.Option(help="Number of top peers to highlight"),
+    ] = 5,
+    dpi: Annotated[
+        int,
+        typer.Option(help="Resolution (DPI) for output image"),
+    ] = 300,
+    verbose: Annotated[
+        bool,
+        typer.Option(help="Enable verbose logging"),
+    ] = False,
+) -> None:
+    """Visualize algorithm convergence history."""
+    try:
+        # Load simulation
+        if verbose:
+            typer.echo(f"Loading simulation from {input}...")
+        sim = load_simulation(input)
+
+        # Check for convergence history
+        if not sim.convergence_history:
+            typer.echo(
+                "Error: No convergence history found. Run 'run' command with --track-history flag.",
+                err=True
+            )
+            raise typer.Exit(1)
+
+        # Create visualizer
+        if verbose:
+            typer.echo(f"Generating convergence visualization...")
+
+        from eigentrust.visualization.formatters import ConvergencePlotter
+        plotter = ConvergencePlotter(dpi=dpi, show_top_n=top_n)
+
+        # Generate visualization
+        plotter.visualize(
+            simulation=sim,
+            output_path=output,
+            title=title
+        )
+
+        # Output success
+        typer.echo(f"Convergence visualization saved to: {output}")
+        typer.echo(f"Iterations: {len(sim.convergence_history) - 1}")
+        raise typer.Exit(0)
+
+    except Exception as e:
+        typer.echo(f"Error: {e}", err=True)
+        raise typer.Exit(1)
+
+
+@app.command()
+def all(
+    peers: Annotated[
+        int,
+        typer.Option(help="Number of peers in network"),
+    ] = 10,
+    interactions: Annotated[
+        int,
+        typer.Option(help="Number of interactions to simulate"),
+    ] = 100,
+    max_iterations: Annotated[
+        int,
+        typer.Option(help="Maximum EigenTrust iterations"),
+    ] = 100,
+    epsilon: Annotated[
+        float,
+        typer.Option(help="Convergence threshold"),
+    ] = 0.001,
+    preset: Annotated[
+        str,
+        typer.Option(help="Peer distribution preset"),
+    ] = "random",
+    output_dir: Annotated[
+        Path,
+        typer.Option(help="Output directory for all files"),
+    ] = Path("."),
+    seed: Annotated[
+        Optional[int],
+        typer.Option(help="Random seed for reproducibility"),
+    ] = None,
+) -> None:
+    """Run complete EigenTrust pipeline: create -> simulate -> run -> visualize."""
+    try:
+        # Create output directory if needed
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        typer.echo("=" * 60)
+        typer.echo("EigenTrust Complete Pipeline")
+        typer.echo("=" * 60)
+
+        # Step 1: Create network
+        typer.echo("\n[1/5] Creating peer network...")
+        from eigentrust.simulation.network import create_network
+        sim = create_network(peer_count=peers, preset=preset, seed=seed)
+        network_file = output_dir / "network.json"
+        from eigentrust.utils.io import save_simulation
+        save_simulation(sim, network_file)
+        typer.echo(f"  ✓ Created {len(sim.peers)} peers")
+
+        # Step 2: Simulate interactions
+        typer.echo(f"\n[2/5] Simulating {interactions} interactions...")
+        sim.simulate_interactions(interactions)
+        sim_file = output_dir / "simulation.json"
+        save_simulation(sim, sim_file)
+
+        from eigentrust.domain.interaction import InteractionOutcome
+        success_count = sum(
+            1 for i in sim.interactions
+            if i.outcome == InteractionOutcome.SUCCESS
+        )
+        typer.echo(f"  ✓ Simulated {len(sim.interactions)} interactions")
+        typer.echo(f"    - Successes: {success_count}")
+        typer.echo(f"    - Failures: {len(sim.interactions) - success_count}")
+
+        # Step 3: Run EigenTrust algorithm
+        typer.echo(f"\n[3/5] Running EigenTrust algorithm...")
+        trust_scores = sim.run_algorithm(
+            max_iterations=max_iterations,
+            epsilon=epsilon,
+            track_history=True
+        )
+        results_file = output_dir / "results.json"
+        save_simulation(sim, results_file)
+        typer.echo(f"  ✓ Algorithm completed in {trust_scores.iteration_count} iterations")
+        typer.echo(f"    - Converged: {trust_scores.converged}")
+
+        # Step 4: Generate visualizations
+        typer.echo(f"\n[4/5] Generating visualizations...")
+
+        # Matrix visualization
+        from eigentrust.visualization.matrix_viz import MatrixVisualizer
+        matrix_viz = MatrixVisualizer()
+        matrix_file = output_dir / "trust_matrix.png"
+        matrix_viz.visualize(sim, matrix_file)
+        typer.echo(f"  ✓ Trust matrix: {matrix_file}")
+
+        # Graph visualization
+        from eigentrust.visualization.graph_viz import GraphVisualizer
+        graph_viz = GraphVisualizer()
+        graph_file = output_dir / "trust_graph.png"
+        graph_viz.visualize(sim, graph_file)
+        typer.echo(f"  ✓ Trust graph: {graph_file}")
+
+        # Convergence visualization
+        from eigentrust.visualization.formatters import ConvergencePlotter
+        conv_plotter = ConvergencePlotter()
+        conv_file = output_dir / "convergence.png"
+        conv_plotter.visualize(sim, conv_file)
+        typer.echo(f"  ✓ Convergence plot: {conv_file}")
+
+        # Step 5: Summary
+        typer.echo(f"\n[5/5] Summary")
+        typer.echo(f"  Peers: {len(sim.peers)}")
+        typer.echo(f"  Interactions: {len(sim.interactions)}")
+        typer.echo(f"  Iterations: {trust_scores.iteration_count}")
+        typer.echo(f"  Converged: {trust_scores.converged}")
+
+        # Show top trust scores
+        typer.echo(f"\n  Top 5 Trust Scores:")
+        sorted_scores = sorted(
+            trust_scores.scores.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+        for i, (peer_id, score) in enumerate(sorted_scores[:5], 1):
+            peer = next(p for p in sim.peers if p.peer_id == peer_id)
+            typer.echo(
+                f"    {i}. {peer.display_name}: {score:.4f} "
+                f"[comp={peer.competence:.2f}, mal={peer.maliciousness:.2f}]"
+            )
+
+        typer.echo(f"\n✓ Complete! All files saved to: {output_dir}")
+        typer.echo("=" * 60)
+        raise typer.Exit(0)
+
+    except Exception as e:
+        typer.echo(f"\nError: {e}", err=True)
         raise typer.Exit(1)
 
 

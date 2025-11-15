@@ -4,7 +4,8 @@ Computes global trust scores using power iteration method.
 """
 
 import torch
-from typing import Tuple
+from typing import Tuple, List, Optional, Dict
+from datetime import datetime
 
 from eigentrust.algorithms.convergence import check_convergence
 
@@ -82,3 +83,86 @@ def compute_eigentrust(
 
     # Max iterations reached without convergence
     return t, max_iterations, False
+
+
+def compute_eigentrust_with_history(
+    trust_matrix: torch.Tensor,
+    pre_trust: torch.Tensor,
+    peer_ids: List[str],
+    max_iterations: int = 100,
+    epsilon: float = 0.001,
+    norm_type: str = 'l1'
+) -> Tuple[torch.Tensor, int, bool, List[Dict]]:
+    """Compute EigenTrust with iteration-by-iteration history tracking.
+
+    Args:
+        trust_matrix: Column-stochastic trust matrix (N×N)
+        pre_trust: Initial trust vector (N,)
+        peer_ids: List of peer IDs corresponding to matrix indices
+        max_iterations: Maximum number of iterations
+        epsilon: Convergence threshold
+        norm_type: Type of norm for convergence check
+
+    Returns:
+        Tuple of (global_trust, iterations, converged, history):
+            - global_trust: Final trust score vector
+            - iterations: Number of iterations executed
+            - converged: Whether algorithm converged
+            - history: List of ConvergenceSnapshot dicts per iteration
+    """
+    # Validate inputs
+    if trust_matrix.dim() != 2 or trust_matrix.shape[0] != trust_matrix.shape[1]:
+        raise ValueError("Trust matrix must be square")
+
+    n = trust_matrix.shape[0]
+    if pre_trust.shape[0] != n:
+        raise ValueError(f"Pre-trust vector size ({pre_trust.shape[0]}) must match matrix size ({n})")
+
+    if len(peer_ids) != n:
+        raise ValueError(f"Number of peer IDs ({len(peer_ids)}) must match matrix size ({n})")
+
+    # Ensure pre-trust sums to 1.0
+    if not torch.allclose(pre_trust.sum(), torch.tensor(1.0), atol=1e-6):
+        pre_trust = pre_trust / pre_trust.sum()
+
+    # Initialize trust vector and history
+    t = pre_trust.clone()
+    history = []
+
+    # Record initial state (iteration 0)
+    trust_scores_dict = {peer_ids[i]: float(t[i].item()) for i in range(n)}
+    history.append({
+        'iteration': 0,
+        'trust_scores': trust_scores_dict,
+        'delta': 1.0,  # Initial delta is large
+        'timestamp': datetime.utcnow().isoformat()
+    })
+
+    # Power iteration
+    for iteration in range(max_iterations):
+        # Compute next trust vector: t_new = C^T * t
+        t_new = torch.matmul(trust_matrix.T, t)
+
+        # Normalize to ensure sum = 1.0
+        t_new = t_new / t_new.sum()
+
+        # Check convergence
+        status = check_convergence(t, t_new, epsilon, norm_type=norm_type)
+
+        # Record this iteration
+        trust_scores_dict = {peer_ids[i]: float(t_new[i].item()) for i in range(n)}
+        history.append({
+            'iteration': iteration + 1,
+            'trust_scores': trust_scores_dict,
+            'delta': status.delta,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+
+        if status.converged:
+            return t_new, iteration + 1, True, history
+
+        # Update for next iteration
+        t = t_new
+
+    # Max iterations reached without convergence
+    return t, max_iterations, False, history

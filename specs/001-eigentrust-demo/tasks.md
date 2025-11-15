@@ -195,13 +195,13 @@
 
 ### Implementation for User Story 5
 
-- [ ] T081 [P] [US5] Extend EigenTrust algorithm to track iteration-by-iteration trust scores
-- [ ] T082 [US5] Add convergence history to Simulation aggregate root
-- [ ] T083 [US5] Implement convergence plot in visualization/formatters.py (trust scores over iterations)
-- [ ] T084 [US5] Implement delta subplot for convergence visualization
-- [ ] T085 [US5] Add CLI visualize convergence subcommand in src/eigentrust/cli/main.py
-- [ ] T086 [US5] Add verbose logging to run command showing iteration progress
-- [ ] T087 [US5] Add CLI all command that runs complete pipeline (create → simulate → run → visualize)
+- [X] T081 [P] [US5] Extend EigenTrust algorithm to track iteration-by-iteration trust scores
+- [X] T082 [US5] Add convergence history to Simulation aggregate root
+- [X] T083 [US5] Implement convergence plot in visualization/formatters.py (trust scores over iterations)
+- [X] T084 [US5] Implement delta subplot for convergence visualization
+- [X] T085 [US5] Add CLI visualize convergence subcommand in src/eigentrust/cli/main.py
+- [X] T086 [US5] Add verbose logging to run command showing iteration progress
+- [X] T087 [US5] Add CLI all command that runs complete pipeline (create → simulate → run → visualize)
 
 **Checkpoint**: All user stories complete - Full application functionality implemented
 
