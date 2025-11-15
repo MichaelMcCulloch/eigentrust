@@ -27,20 +27,20 @@ This application simulates peer-to-peer networks with configurable peer characte
 ### Prerequisites
 
 - Python 3.11 or higher
-- Poetry (recommended) or pip
+- [uv](https://docs.astral.sh/uv/) (recommended) or pip
 
-### Install with Poetry
+### Install with uv (Recommended)
 
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/eigentrust.git
 cd eigentrust
 
-# Install dependencies
-poetry install
+# Install dependencies and create virtual environment
+uv sync
 
 # Verify installation
-poetry run eigentrust --version
+uv run eigentrust --version
 ```
 
 ### Install with pip
@@ -62,6 +62,12 @@ eigentrust --version
 Run a complete simulation in one command:
 
 ```bash
+uv run eigentrust all --peers 20 --interactions 200 --output-dir ./demo
+```
+
+Or if installed globally:
+
+```bash
 eigentrust all --peers 20 --interactions 200 --output-dir ./demo
 ```
 
@@ -72,35 +78,32 @@ This creates a 20-peer network, simulates 200 interactions, runs the EigenTrust 
 ### Create a Network
 
 ```bash
-eigentrust create --peers 10 --preset random --output network.json
+uv run eigentrust create --peers 10 --preset random --output network.json
 ```
 
 ### Simulate Interactions
 
 ```bash
-eigentrust simulate --input network.json --interactions 100 --output sim_results.json
+uv run eigentrust simulate --input network.json --interactions 100 --output sim_results.json
 ```
 
 ### Run EigenTrust Algorithm
 
 ```bash
-eigentrust run --input sim_results.json --output results.json
+uv run eigentrust run --input sim_results.json --output results.json
 ```
 
 ### Visualize Results
 
 ```bash
 # Matrix heatmap
-eigentrust visualize matrix --input results.json --output matrix.png
+uv run eigentrust visualize-matrix --input results.json --output matrix.png
 
 # Trust graph
-eigentrust visualize graph --input results.json --output graph.png
+uv run eigentrust visualize-graph --input results.json --output graph.png
 
 # Convergence plot
-eigentrust visualize convergence --input results.json --output convergence.png
-
-# All visualizations
-eigentrust visualize all --input results.json --output-dir ./viz
+uv run eigentrust visualize-convergence --input results.json --output convergence.png
 ```
 
 ## Documentation
@@ -116,36 +119,36 @@ eigentrust visualize all --input results.json --output-dir ./viz
 
 ```bash
 # Install with dev dependencies
-poetry install
+uv sync --extra dev
 
 # Install optional extras
-poetry install --extras "scikit triton"
+uv sync --extra scikit --extra triton
 ```
 
 ### Run Tests
 
 ```bash
 # Run all tests
-poetry run pytest
+uv run pytest
 
 # Run with coverage
-poetry run pytest --cov
+uv run pytest --cov
 
 # Run specific test file
-poetry run pytest tests/unit/domain/test_peer.py
+uv run pytest tests/unit/domain/test_peer.py
 ```
 
 ### Code Quality
 
 ```bash
 # Format code
-poetry run black src/ tests/
+uv run black src/ tests/
 
 # Type check
-poetry run mypy src/
+uv run mypy src/
 
 # Lint
-poetry run ruff check src/
+uv run ruff check src/
 ```
 
 ## Architecture

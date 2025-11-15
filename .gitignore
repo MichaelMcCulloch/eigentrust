@@ -32,6 +32,10 @@ ENV/
 env/
 .env
 
+# uv
+.python-version
+uv.lock
+
 # PyTorch
 *.pth
 *.pt
